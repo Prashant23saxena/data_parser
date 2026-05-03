@@ -1,0 +1,14 @@
+Flow 1: File import to transformation
+S-01 -> S-02 -> S-03 -> S-05 -> S-06 -> S-09
+
+Flow 2: Odoo ingest to scheduled pipeline
+S-01 -> S-02 -> S-04 -> S-05 -> S-09 -> S-11 -> S-12
+
+Flow 3: Agent-assisted transformation
+S-09 -> S-10 -> S-09 -> S-10 if correction needed -> S-09 -> S-05
+
+Flow 4: Pipeline failure recovery
+S-01 -> S-12 -> S-13 -> S-09/S-10 -> S-12 manual rerun
+
+Flow 5: Table maintenance/export
+S-05 -> S-06 -> S-08 export OR S-07 destructive confirmation -> S-05

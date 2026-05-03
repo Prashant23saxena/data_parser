@@ -1,0 +1,57 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                             Workspace: Local DuckDB  [Settings] |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Home / Operations Overview                                             Last refresh: 02 May 2026, 10:42 |
+|                      |                                                                                           [Refresh]    |
+| + Import data        | Quick actions                                                                            [New import] |
+| + Open code          |  +-----------------------+  +-----------------------+  +-----------------------+  +----------------+ |
+| + New pipeline       |  | Upload CSV / Excel     |  | Connect to Odoo      |  | Open Code Workspace  |  | View Catalog   | |
+|                      |  | Create a new table     |  | Pull models/records   |  | Transform in Python  |  | Browse tables  | |
+| Navigation           |  | [Start file import]    |  | [Open Odoo setup]     |  | [Write Python]       |  | [Open catalog] | |
+| * Home               |  +-----------------------+  +-----------------------+  +-----------------------+  +----------------+ |
+|   Connectors         |                                                                                           |
+|   Catalog            | Pipeline health                                                                          |
+|   Code Workspace     |  +----------------+  +----------------+  +----------------+  +---------------------------------------+ |
+|   Saved Scripts      |  | Running        |  | Successful     |  | Failed         |  | Active failure alert                 | |
+|   Pipelines          |  | 1              |  | 18 last 24h    |  | 2 need review  |  | customer_sync failed 12 min ago      | |
+|   Storage Settings   |  | odoo_delta     |  | avg 41 sec     |  | [Open runs]    |  | TypeError: column amount missing     | |
+|                      |  +----------------+  +----------------+  +----------------+  | [Review run] [Acknowledge]           | |
+| System               |                                                              +---------------------------------------+ |
+| DB: Ready            |                                                                                           |
+| Tables: 26           | Recent pipeline runs                                                                       |
+| Scripts: 14          |  +---------------------------------------------------------------------------------------------------+ |
+| Pipelines: 7         |  | Pipeline             Status       Started        Duration   Source/script              Action       | |
+|                      |  | odoo_delta_sales     Running      10:39 AM       03:12      Odoo: sale.order           [View]       | |
+|                      |  | customer_sync        Failed       10:30 AM       00:18      script: clean_customers    [Review]     | |
+|                      |  | inventory_rollup     Success      09:45 AM       00:52      script: inventory_rollup   [Open log]   | |
+|                      |  | price_refresh        Success      09:00 AM       00:21      Odoo: product.template     [Open log]   | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Recent work                                                                                |
+|                      |  +-------------------------------------------+  +-----------------------------------------------+ |
+|                      |  | Recent tables                             |  | Recent scripts                                | |
+|                      |  | sales_orders_raw      18,240 rows  Odoo   |  | clean_customers.py       edited 18 min ago    | |
+|                      |  | customers_enriched     4,128 rows  Python |  | margin_analysis.py       edited yesterday     | |
+|                      |  | inventory_snapshot    91,002 rows  File   |  | inventory_rollup.py      used in pipeline     | |
+|                      |  | [Open catalog]                           |  | [Open saved scripts]                          | |
+|                      |  +-------------------------------------------+  +-----------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Storage status                                                                             |
+|                      |  DuckDB file: /workspace/kriyax.duckdb     Size: 842 MB     Last backup/export: not set    |
+|                      |  [Open storage settings]                                                                   |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Primary click paths:
+- Start file import -> S-03 File Import Wizard
+- Open Odoo setup -> S-04 Odoo Import Workspace
+- Write Python -> S-09 Code Workspace
+- Open catalog / table rows -> S-05 Catalog or S-06 Table Detail
+- Review run / failed badge -> S-13 Pipeline Run Detail
+- Open saved scripts -> S-11 Saved Scripts
+- Open storage settings -> S-14 Storage Settings
+
+Important alternate states:
+- Empty workspace: quick actions remain, health cards show zeroes, recent tables/scripts/runs panels show first-use empty messages.
+- Healthy: active failure alert collapses into "No active failures"; failed count is 0.
+- Loading: skeleton cards for health and recent work; quick actions still visible but history tables disabled.
+- History unavailable: pipeline health shows a recoverable inline error with [Retry] and link to Pipelines.

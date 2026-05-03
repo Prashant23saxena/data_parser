@@ -1,0 +1,71 @@
+# Component Dependency Visual — L8.2 Components v1
+
+Status: FROZEN
+
+frontend-app-shell
+  |-- uses --> frontend-api-client
+  |-- hosts --> frontend-connectors
+  |-- hosts --> frontend-catalog
+  |-- hosts --> frontend-code-workspace
+  |-- hosts --> frontend-agent-panel
+  |-- hosts --> frontend-pipelines
+  |-- hosts --> frontend-storage-settings
+
+frontend-connectors ------\
+frontend-catalog ----------\
+frontend-code-workspace ----- > frontend-api-client --> backend-api-routers
+frontend-agent-panel -------/
+frontend-pipelines --------/
+frontend-storage-settings -/
+
+backend-api-routers
+  |-- delegates --> backend-storage-service
+  |-- delegates --> backend-imports-service
+  |-- delegates --> backend-catalog-service
+  |-- delegates --> backend-odoo-service
+  |-- delegates --> backend-execution-service
+  |-- delegates --> backend-pipelines-service
+  |-- delegates --> backend-agent-service
+
+backend-imports-service
+  |-- uses --> backend-workspace-service
+  |-- uses --> backend-storage-service
+  |-- updates --> backend-catalog-service
+
+backend-odoo-service
+  |-- uses --> backend-workspace-service
+  |-- uses --> backend-storage-service
+  |-- updates --> backend-catalog-service
+  |-- calls --> external Odoo XML-RPC
+
+backend-execution-service
+  |-- uses --> backend-workspace-service
+  |-- uses --> backend-storage-service
+  |-- updates --> backend-catalog-service
+  |-- runs on --> infrastructure-local-runtime
+
+backend-pipelines-service
+  |-- uses --> backend-workspace-service
+  |-- delegates script run --> backend-execution-service
+  |-- delegates connector pre-step --> backend-odoo-service
+
+backend-agent-service
+  |-- reads schema context --> backend-catalog-service
+  |-- reads execution errors --> backend-execution-service
+  |-- calls --> LLM provider
+
+backend-storage-service
+  |-- uses --> backend-workspace-service
+  |-- stores data in --> DuckDB Warehouse
+
+backend-catalog-service
+  |-- uses --> backend-workspace-service
+  |-- reads live metadata from --> DuckDB Warehouse
+  |-- stores app metadata in --> workspace metadata JSON
+
+Dependency rules:
+  - No frontend component reads files or DuckDB directly.
+  - API routers stay thin.
+  - Domain services own their entities.
+  - Pipelines orchestrate; execution and connector sync remain delegated.
+  - No circular service dependencies in the target architecture.

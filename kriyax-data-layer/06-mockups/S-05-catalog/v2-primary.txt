@@ -1,0 +1,44 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                        Catalog                         [Export] |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Catalog                                                       [Search tables___________] [Filter]      |
+| + Import data        | Tables in workspace: 26       Sources: File 9 | Odoo 11 | Python 6       DB: Ready                   |
+| + Open code          |                                                                                           |
+| + New pipeline       | Filters                                                                                   |
+|                      | [All tables] [Odoo] [File] [Python-derived] [Recently updated] [Has failures]             |
+| Navigation           |                                                                                           |
+|   Home               | Table registry                                                                             |
+|   Connectors         |  +---------------------------------------------------------------------------------------------------+ |
+| * Catalog            |  | Table name             Source          Rows       Columns  Updated       Actions                    | |
+|   Code Workspace     |  | sales_orders_raw       Odoo sale.order 18,240     18       10:40 AM      [Details] [Preview rows] [Use in Python] |
+|   Saved Scripts      |  | customers_enriched     Python script   4,128      22       10:12 AM      [Details] [Preview rows] [Use in Python] |
+|   Pipelines          |  | inventory_snapshot     Excel file      91,002     14       Yesterday     [Details] [Preview rows] [Export CSV] |
+|   Storage Settings   |  | price_refresh_raw      Odoo product    2,902      11       Yesterday     [Details] [Preview rows] [Use in Python] |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+| System               |                                                                                           |
+| DB: Ready            | Preview drawer: sales_orders_raw                                                           |
+| Tables: 26           |  +---------------------------------------------------------------------------------------------------+ |
+| Scripts: 14          |  | Columns: 18       Rows: 18,240       Source: Odoo sale.order       Last import: 10:40 AM           | |
+| Pipelines: 7         |  | +-----------------------------------------------------------------------------------------------+ | |
+|                      |  | | id   name    partner_id      amount_total   state   write_date                              | | |
+|                      |  | | 81   SO081   Acme Corp       1240.50        sale    2026-05-02 10:39                       | | |
+|                      |  | | 82   SO082   Globex          931.20         done    2026-05-02 10:37                       | | |
+|                      |  | | 83   SO083   Northwind       80.00          sale    2026-05-02 10:30                       | | |
+|                      |  | +-----------------------------------------------------------------------------------------------+ | |
+|                      |  | [Open table detail] [Use in Python workspace] [Export CSV]                                        | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Empty/no-result behavior                                                                   |
+|                      |  Search "abc" with no result shows: No tables match "abc"  [Clear search] [Import data]    |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Empty catalog: import/connect/code quick actions, no table registry rows.
+- Loading: skeleton table rows and disabled preview drawer.
+- Error: inline "Could not load catalog" with retry and storage settings link.
+
+Action meanings:
+- Details: opens the Table Detail screen with metadata, columns, preview, export, and manage-table actions.
+- Preview rows: opens the inline preview drawer only; it does not mean full data browsing.
+- Use in Python: opens Code Workspace and inserts/loads the table through `load_table("table_name")`.
+- Export CSV: opens the export modal.

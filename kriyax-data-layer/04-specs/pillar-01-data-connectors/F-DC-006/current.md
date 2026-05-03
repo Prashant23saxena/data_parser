@@ -1,0 +1,79 @@
+# Spec — F-DC-006: Fetch Odoo records to table
+
+**Version:** v2
+**Status:** FROZEN
+**Last updated:** 2026-05-02
+**Pillar:** pillar-01-data-connectors
+**Feature ref:** F-DC-006
+**Dependencies:** F-DC-005
+
+## Summary
+User selects an Odoo model and fields, clicks Fetch, and the system pulls records via XML-RPC search_read and loads them into a local database table. Supports optional domain filters.
+
+The Odoo fetch path should support broad practical extraction from client Odoo systems: selected fields, all fields when needed, domain filters, record limits, batching, relational field handling, and clear warnings for fields that cannot be imported directly.
+
+## Inputs
+| Field | Type | Required | Default | Validation |
+|---|---|---|---|---|
+| model_name | string | yes | — | from F-DC-005 selection |
+| fields | array[string] | yes | selected fields or all supported fields | at least 1 field selected; unsupported fields are skipped with warnings |
+| table_name | string | yes | model_name (sanitized) | alphanumeric + underscores, max 64, unique in DB |
+| domain_filter | string | no | [] (all records) | valid Odoo domain syntax |
+| record_limit | int | no | no limit | 0 = all, positive integer |
+
+## States
+
+### configure
+User sets table name, optional domain filter, optional record limit. Preview of selected model + fields. "Fetch" button.
+
+### fetching
+Records being pulled from Odoo. Progress: "Fetching records… {{count}} so far." Uses batched search_read (500 records per batch).
+
+### schema-confirm
+Records fetched. Shows auto-detected schema (columns + types from Odoo field types). User confirms or adjusts. Same pattern as F-DC-003 preview.
+
+### importing
+Writing fetched data to database. Spinner: "Creating table…"
+
+### success
+Table created. Message: "Table '{{table_name}}' created with {{row_count}} rows." Timestamp stored for incremental sync (F-DC-007).
+
+### error:fetch-failed
+Odoo API error during fetch (timeout, permission, rate limit).
+Message: "Fetch failed: {{error}}. Try again or reduce the record limit."
+
+### error:import-failed
+DB write failed.
+Message: "Import failed: {{error}}."
+
+## Transitions
+| From | To | Trigger | Side effects |
+|---|---|---|---|
+| configure | fetching | user clicks Fetch | XML-RPC search_read calls begin |
+| fetching | schema-confirm | all records fetched | data in temp storage |
+| fetching | error:fetch-failed | API error | partial data discarded |
+| schema-confirm | importing | user confirms schema | DB write begins |
+| importing | success | DB write complete | table created, catalog updated, sync timestamp saved |
+| importing | error:import-failed | DB error | none |
+
+## Edge cases
+- Model with 0 records → success with warning: "0 records found matching your filter"
+- Model with 100k+ records → batched fetch with progress, may take minutes
+- Odoo session timeout mid-fetch → retry with re-auth
+- Relational fields (many2one) → import as ID value + display_name (two columns)
+- Relational fields (one2many/many2many) → do not flatten deeply in v1; show warning and skip unless explicitly supported later
+- Binary fields → skip with warning: "Binary fields excluded from import"
+- Computed/read-only fields → fetch if Odoo returns them through search_read; otherwise show warning
+- Domain filter syntax error → validate before fetch, show: "Invalid filter syntax"
+
+## Acceptance checklist
+- [ ] Fetch res.partner with all fields → table created with correct data
+- [ ] Fetch selected fields from a large Odoo model → only selected fields are imported
+- [ ] Fetch with domain filter [["customer","=",true]] → only matching records
+- [ ] Fetch model with 0 records → success with warning
+- [ ] Table name conflict → error requires a new unique table name
+- [ ] Large fetch (10k+ records) → progress shown, completes successfully
+- [ ] Unsupported relational/binary fields → skipped with clear warnings, fetch still completes
+
+---
+*Frozen on: 2026-05-02*

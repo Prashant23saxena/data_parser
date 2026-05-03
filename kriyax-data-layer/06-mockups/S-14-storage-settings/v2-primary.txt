@@ -1,0 +1,42 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                   Storage Settings                  [Refresh]   |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Storage Settings                                                                          |
+| + Import data        | Backing database: Local DuckDB                                                            |
+| + Open code          |                                                                                           |
+| + New pipeline       | Health                                                                                    |
+|                      |  +------------------------+ +------------------------+ +------------------------+ +----------------+ |
+| Navigation           |  | Database status        | | File size              | | Tables                 | | Last check      | |
+|   Home               |  | Ready                  | | 842 MB                 | | 26                     | | 10:42 AM        | |
+|   Connectors         |  | [Run health check]     | | Path valid             | | 0 locked              | | [View details]  | |
+|   Catalog            |  +------------------------+ +------------------------+ +------------------------+ +----------------+ |
+|   Code Workspace     |                                                                                           |
+|   Saved Scripts      | Configuration                                                                             |
+|   Pipelines          |  +---------------------------------------------------------------------------------------------------+ |
+| * Storage Settings   |  | Workspace folder      /workspace/kriyax-data-layer                                              | |
+|                      |  | DuckDB file           /workspace/kriyax-data-layer/kriyax.duckdb                                | |
+| System               |  | Temp folder           /workspace/kriyax-data-layer/tmp                                          | |
+| DB: Ready            |  | Max preview rows      [ 1000____ ]                                                             | |
+| Tables: 26           |  | [Save settings]                                                                                 | |
+| Scripts: 14          |  +---------------------------------------------------------------------------------------------------+ |
+| Pipelines: 7         |                                                                                           |
+|                      | Storage usage                                                                              |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | Category              Count      Size       Notes                                               | |
+|                      |  | Imported tables        20         610 MB     File and Odoo raw tables                            | |
+|                      |  | Derived tables         6          188 MB     Python/pandas outputs                               | |
+|                      |  | Run logs               74         22 MB      Pipeline execution history                           | |
+|                      |  | Script metadata        14         <1 MB      Saved Python scripts                                 | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Maintenance                                                                               |
+|                      |  [Open catalog] [Export important tables] [Run integrity check]                            |
+|                      |                                                                                           |
+|                      | Error area                                                                                |
+|                      |  If DB unreachable: show path, permission hint, retry, and disable imports/runs safely.     |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Checking: health cards show progress and settings disabled.
+- DB unreachable: critical banner with retry and path/permission guidance.
+- Migration error: show migration step, error, and support/debug details.

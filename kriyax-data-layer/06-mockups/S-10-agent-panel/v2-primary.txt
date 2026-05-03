@@ -1,0 +1,43 @@
++------------------------------------------------------------------------------------------------------------------+
+| S-10 Agent Panel docked inside S-09 Code Workspace                                                            |
++---------------------------------------------------------------+--------------------------------------------------+
+| Code Workspace                                                | Agent                                           |
+| Script: clean_customers.py                    [Run] [Save]    | Context: customers_raw, sales_orders_raw       |
+|                                                               | [Manage context] [Clear chat]                  |
+| Editor                                                        |                                                  |
+|  1 customers = load_table("customers_raw")                    | User                                             |
+|  2 orders = load_table("sales_orders_raw")                    | "Join customers to orders, clean email casing,  |
+|  3 result = customers.merge(orders, on="customer_id")         |  and save the result as customers_enriched."    |
+|  4 result["email"] = result["email"].str.lower()              |                                                  |
+|                                                               | Agent                                            |
+| Output: traceback                                             | "I found customer_id in both tables and email   |
+| TypeError at line 4: Can only use .str accessor with string   | in customers_raw. Here is Python/pandas code."  |
+| values                                                        |                                                  |
+| [Ask Agent to fix]                                            | Generated code                                   |
+|                                                               | +----------------------------------------------+ |
+|                                                               | | customers["email"] = (                       | |
+|                                                               | |   customers["email"].astype(str)             | |
+|                                                               | |   .str.lower().str.strip()                   | |
+|                                                               | | )                                            | |
+|                                                               | | result = customers.merge(orders,             | |
+|                                                               | |   on="customer_id", how="left")              | |
+|                                                               | | save_table(result, "customers_enriched")     | |
+|                                                               | +----------------------------------------------+ |
+|                                                               | [Insert into editor] [Replace selection]        |
+|                                                               |                                                  |
+|                                                               | Self-correction                                 |
+|                                                               | Error from last run detected.                   |
+|                                                               | Attempt 1 of 3                                  |
+|                                                               | Proposed fix: cast email to string before .str  |
+|                                                               | [Apply fix] [Explain error]                     |
+|                                                               |                                                  |
+|                                                               | Follow-up                                       |
+|                                                               | [ Ask a follow-up________________________ ] [Send]|
++---------------------------------------------------------------+--------------------------------------------------+
+
+Important alternate states:
+- Empty chat: prompt suggestions based on selected tables.
+- Thinking: streaming/working state with cancel.
+- LLM error: message preserves user prompt and offers retry.
+- Max correction attempts: stops auto-fix and asks user to review manually.
+- No schema context: agent asks user to choose tables before generating code.

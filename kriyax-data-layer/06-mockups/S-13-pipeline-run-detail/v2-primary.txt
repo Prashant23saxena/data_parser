@@ -1,0 +1,43 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                             Pipeline Run Detail: customer_sync failed           |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | customer_sync / Run 2026-05-02 10:30 AM                       [Back to pipelines] [Rerun] |
+| + Import data        | Status: Failed       Duration: 00:18       Source: clean_customers.py       Trigger: schedule |
+| + Open code          |                                                                                           |
+| + New pipeline       | Failure summary                                                                            |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+| Navigation           |  | TypeError at line 4: Can only use .str accessor with string values                                | |
+|   Home               |  | Impact: customers_enriched was not updated. Previous table version remains available.             | |
+|   Connectors         |  | [Ask Agent to fix] [Open script in Code Workspace] [Acknowledge alert]                            | |
+|   Catalog            |  +---------------------------------------------------------------------------------------------------+ |
+|   Code Workspace     |                                                                                           |
+|   Saved Scripts      | Timeline                                                                                  |
+| * Pipelines          |  +---------------------------------------------------------------------------------------------------+ |
+|   Storage Settings   |  | 10:30:00 Started scheduled run                                                                   | |
+|                      |  | 10:30:02 Loaded customers_raw: 4,128 rows                                                        | |
+| System               |  | 10:30:06 Loaded sales_orders_raw: 18,240 rows                                                    | |
+| DB: Ready            |  | 10:30:12 Executing line 4                                                                         | |
+| Tables: 26           |  | 10:30:18 Failed with TypeError                                                                    | |
+| Scripts: 14          |  +---------------------------------------------------------------------------------------------------+ |
+| Pipelines: 7         |                                                                                           |
+|                      | Traceback                                                                                 |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | File clean_customers.py, line 4                                                                 | |
+|                      |  | result["email"] = result["email"].str.lower().str.strip()                                      | |
+|                      |  | TypeError: Can only use .str accessor with string values                                        | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Run context                                                                               |
+|                      |  +-------------------------------------------+  +-----------------------------------------------+ |
+|                      |  | Inputs                                    |  | Outputs                                      | |
+|                      |  | customers_raw      available 4,128 rows   |  | customers_enriched not updated              | |
+|                      |  | sales_orders_raw   available 18,240 rows  |  | prior version retained                      | |
+|                      |  +-------------------------------------------+  +-----------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Agent handoff: sends traceback, script, table schemas, and run context to S-10.             |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Running: live timeline updates and no traceback yet.
+- Success: output table link, duration, row counts, logs.
+- Logs unavailable: run metadata visible with recoverable logs error.

@@ -1,0 +1,56 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                  File Import Wizard                  [Cancel]   |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Import CSV / Excel file                                                                   |
+| + Import data        | Step 3 of 5: Choose target schema and review columns                                       |
+| + Open code          |                                                                                           |
+| + New pipeline       | Progress: [Upload file] -- [Choose schema] -- [Map columns] -- [Preview] -- [Create table] |
+|                      |                                                                                           |
+| Navigation           | Uploaded file                                                                             |
+|   Home               |  +---------------------------------------------------------------------------------------------------+ |
+| * Connectors         |  | File: customer_export_may.xlsx       Sheet: Customers       Size: 4.2 MB       Rows: 4,128         | |
+|   Catalog            |  | Encoding: auto-detected UTF-8        Header row: 1          Empty rows skipped: 3                  | |
+|   Code Workspace     |  +---------------------------------------------------------------------------------------------------+ |
+|   Saved Scripts      |                                                                                           |
+|   Pipelines          | Target schema and table                                                                    |
+|   Storage Settings   |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | Target schema: [ raw_files v ]   New table name: [ customers_may_import______________ ] [Validate] | |
+| System               |  | Import mode: New table only. Existing tables cannot be overwritten in v1.                         | |
+| DB: Ready            |  | Available schemas: raw_files, raw_odoo, staging, curated. User must choose before import.          | |
+| Tables: 26           |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+| Scripts: 14          | Duplicate column review                                                                    |
+| Pipelines: 7         |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | Incoming column       Issue                         Final column name           Type      Status   | |
+|                      |  | Name                  Already exists as "name"       [ customer_name________ ]  text v    Ready    | |
+|                      |  | Email                 Already exists as "email"      [ customer_email_______ ] text v    Ready    | |
+|                      |  | Amount                OK                            [ amount______________ ]    decimal v Ready    | |
+|                      |  | Created Date          OK                            [ created_date________ ]    date v    Ready    | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Column mapping and type review                                                             |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | Source column       Final column name       Type       Nulls  Samples              Actions        | |
+|                      |  | Name                customer_name           text       0      Acme, Northwind      [Edit name] [Change type] |
+|                      |  | Email               customer_email          text       18     ops@acme.com         [Edit name] [Change type] |
+|                      |  | Amount              amount                  decimal    2      1240.50, 80.00       [Edit name] [Change type] |
+|                      |  | Created Date        created_date            date       0      2026-05-01           [Edit name] [Change type] |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Row preview                                                                                |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | customer_name     customer_email        amount      created_date       source_row                | |
+|                      |  | Acme Corp         ops@acme.com          1240.50     2026-05-01         2                         | |
+|                      |  | Northwind         billing@northwind.io  80.00       2026-05-01         3                         | |
+|                      |  | Globex            finance@globex.com    931.20      2026-05-02         4                         | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                        [Back] [Preview more rows] [Create table] |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Upload: drag/drop area plus [Browse file], accepted types CSV/XLS/XLSX.
+- Choose schema: dropdown lists available workspace schemas/storage areas before table creation.
+- Mapping: system suggests types from the file, but user can edit both final column name and type for every column.
+- Validation error: target schema/table name/column name/type issues highlight inline; create disabled.
+- Importing: progress and disabled navigation; no partial success claimed.
+- Success: table created message with [Open table] and [Open in code workspace].

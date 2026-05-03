@@ -1,0 +1,42 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                     Table Detail: sales_orders_raw              |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | sales_orders_raw                                      [Open in code] [Export CSV] [Manage table]      |
+| + Import data        | Source: Odoo sale.order   Rows: 18,240   Columns: 18   Updated: 02 May 2026, 10:40 AM                |
+| + Open code          |                                                                                           |
+| + New pipeline       | Tabs: [Overview] [Columns] [Preview rows] [Lineage]                                        |
+|                      |                                                                                           |
+| Navigation           | Overview                                                                                  |
+|   Home               |  +-------------------------------+ +-------------------------------+ +-----------------------------+ |
+|   Connectors         |  | Storage                       | | Source                        | | Quality snapshot            | |
+| * Catalog            |  | Table type: physical          | | Connector: kriya_prod_odoo    | | Null-heavy columns: 1       | |
+|   Code Workspace     |  | Created by: Odoo import       | | Model: sale.order             | | Type warnings: 0            | |
+|   Saved Scripts      |  | DuckDB table: sales_orders_raw| | Domain: state in sale,done    | | Last preview: just now      | |
+|   Pipelines          |  +-------------------------------+ +-------------------------------+ +-----------------------------+ |
+|   Storage Settings   |                                                                                           |
+|                      | Columns                                                                                   |
+| System               |  +---------------------------------------------------------------------------------------------------+ |
+| DB: Ready            |  | Column          Type       Nullable  Example                     Description/action                | |
+| Tables: 26           |  | id              integer    no        81                          Odoo record id                    | |
+| Scripts: 14          |  | name            text       no        SO081                       Sales order number                | |
+| Pipelines: 7         |  | partner_id      text       yes       Acme Corp                   Customer display value            | |
+|                      |  | amount_total    decimal    no        1240.50                     Order total                       | |
+|                      |  | write_date      timestamp  no        2026-05-02 10:39            Delta sync field                  | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Preview rows                                                                               |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | id   name    partner_id      amount_total   state   write_date                source_batch         | |
+|                      |  | 81   SO081   Acme Corp       1240.50        sale    2026-05-02 10:39          batch_004            | |
+|                      |  | 82   SO082   Globex          931.20         done    2026-05-02 10:37          batch_004            | |
+|                      |  | 83   SO083   Northwind       80.00          sale    2026-05-02 10:30          batch_004            | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Management actions                                                                         |
+|                      |  [Rename table] [Truncate rows] [Drop table]   Destructive actions open confirmation modal. |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Empty table: metadata and columns remain; preview rows shows "No rows yet".
+- Preview error: preview panel shows retry and raw error.
+- Internal/protected table: destructive actions disabled with reason.

@@ -1,0 +1,41 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                       Pipelines                    [New pipeline] |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Pipelines                                         [Manual run] [Refresh] [Show: all v]               |
+| + Import data        |                                                                                           |
+| + Open code          | Summary                                                                                   |
+| + New pipeline       |  +----------------+ +----------------+ +----------------+ +----------------+ +-------------------+ |
+|                      |  | Enabled        | | Disabled       | | Running        | | Failed         | | Next due          | |
+| Navigation           |  | 5              | | 2              | | 1              | | 2 active alerts | | odoo_delta 11:00  | |
+|   Home               |  +----------------+ +----------------+ +----------------+ +----------------+ +-------------------+ |
+|   Connectors         |                                                                                           |
+|   Catalog            | Pipeline list                                                                              |
+|   Code Workspace     |  +---------------------------------------------------------------------------------------------------+ |
+|   Saved Scripts      |  | Pipeline             Type          Schedule        Enabled  Last run      Status       Action       | |
+| * Pipelines          |  | customer_sync        Python script  Every 1 hour    [on]     10:30 AM      Failed       [Review]     | |
+|   Storage Settings   |  | odoo_delta_sales     Odoo delta     Every 15 min    [on]     Running       Running      [View]       | |
+|                      |  | inventory_daily      Python script  8:00 AM daily   [on]     09:45 AM      Success      [Run now]    | |
+| System               |  | price_refresh        Odoo delta     Disabled        [off]    Yesterday     Success      [Enable]     | |
+| DB: Ready            |  +---------------------------------------------------------------------------------------------------+ |
+| Tables: 26           |                                                                                           |
+| Scripts: 14          | Configure selected: customer_sync                                                          |
+| Pipelines: 7         |  +-------------------------------------------+  +-----------------------------------------------+ |
+|                      |  | Source                                    |  | Schedule                                      | |
+|                      |  | Script: clean_customers.py                |  | Type: [Interval v]                            | |
+|                      |  | Output table: customers_enriched          |  | Every: [1] [hour v]                           | |
+|                      |  | [Open script]                             |  | Timezone: local                               | |
+|                      |  +-------------------------------------------+  | Enabled: [x]                                  | |
+|                      |  +-------------------------------------------+  | [Save schedule] [Run now]                     | |
+|                      |  | Failure notification                       |  +-----------------------------------------------+ |
+|                      |  | Last failure: TypeError amount missing     |                                                  |
+|                      |  | Alert state: Active                        | Run history                                      |
+|                      |  | [Acknowledge] [Open run detail]            | 10:30 Failed | 09:30 Success | 08:30 Success    |
+|                      |  +-------------------------------------------+                                                  |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Empty: no pipelines, CTAs to create from saved script or Odoo delta sync.
+- Configuring: required source, schedule, and enabled toggle validation.
+- Disabled: row remains visible, manual run still available if allowed.
+- Running: run now disabled for same pipeline.
+- Failure badge: links to S-13 and acknowledge action.

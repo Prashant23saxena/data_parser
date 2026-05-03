@@ -1,0 +1,33 @@
++--------------------------------------------------------------+
+| Modal over S-06: Confirm destructive table action             |
++--------------------------------------------------------------+
+| Action: Drop table                                            |
+| Table: sales_orders_raw                                       |
+| Rows affected: 18,240                                         |
+| Source: Odoo sale.order                                       |
+|                                                              |
+| This action removes the table from the local workspace.       |
+| It does not delete data from Odoo or the original file source.|
+|                                                              |
+| Safety checks                                                 |
+| [x] Table is not an internal/system table                     |
+| [x] No pipeline is currently running against this table       |
+| [!] 2 saved scripts reference this table                      |
+|                                                              |
+| Referencing scripts                                           |
+| - margin_analysis.py                                          |
+| - weekly_sales_rollup.py                                      |
+|                                                              |
+| Type the table name to confirm                                |
+| [ sales_orders_raw________________________ ]                  |
+|                                                              |
+| Reason / note (optional)                                      |
+| [ Re-importing clean version from Odoo____________________ ]  |
+|                                                              |
+|                                  [Cancel] [Drop table]        |
++--------------------------------------------------------------+
+
+Variants:
+- Rename table: old name, new name input, validation for unique table name.
+- Truncate rows: type table name, confirm row count, keeps table schema.
+- Blocked internal table: primary action disabled and reason shown.

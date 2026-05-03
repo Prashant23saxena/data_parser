@@ -1,0 +1,40 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                     Connectors                       [Settings] |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Connectors                                                                 [Refresh status] [New connection]      |
+| + Import data        | Choose how data enters this workspace. Imports always create a new table.                         |
+| + Open code          |                                                                                           |
+| + New pipeline       | Connector entry points                                                                    |
+|                      |  +-------------------------------------------+  +-----------------------------------------------+ |
+| Navigation           |  | File upload                               |  | Odoo connection                              | |
+|   Home               |  | CSV / Excel files from local machine      |  | Pull models, fields, and records from Odoo  | |
+| * Connectors         |  | Last import: inventory_snapshot.xlsx      |  | Saved: kriya_prod_odoo                      | |
+|   Catalog            |  | Creates: new table only                   |  | Status: Connected  Last test: 10:22 AM      | |
+|   Code Workspace     |  | [Start file import]                       |  | [Open Odoo workspace] [Test connection]     | |
+|   Saved Scripts      |  +-------------------------------------------+  +-----------------------------------------------+ |
+|   Pipelines          |                                                                                           |
+|   Storage Settings   | Saved Odoo connections                                                                     |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+| System               |  | Name             URL                       Database       User              Status      Action      | |
+| DB: Ready            |  | kriya_prod_odoo https://odoo.kriya.local   kriya_prod     data.bot@kriya    Healthy     [Open]      | |
+| Tables: 26           |  | demo_sandbox    https://demo.odoo.com      demo_db        analyst@kriya     Needs auth  [Fix]       | |
+| Scripts: 14          |  +---------------------------------------------------------------------------------------------------+ |
+| Pipelines: 7         |                                                                                           |
+|                      | Recent imports                                                                             |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | Source                    Created table              Rows       When        Open                  | |
+|                      |  | inventory_snapshot.xlsx    inventory_snapshot         91,002     Today       [Table detail]       | |
+|                      |  | Odoo: sale.order            sales_orders_raw           18,240     Today       [Table detail]       | |
+|                      |  | customers.csv               customers_raw              4,128      Yesterday   [Table detail]       | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Connector rules                                                                            |
+|                      |  - File and Odoo imports create new tables; existing tables are not overwritten in v1.       |
+|                      |  - Duplicate incoming columns are handled during import by asking the user to rename them.   |
+|                      |  - Saved Odoo connections can be opened, tested, edited, or re-authenticated.                |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Empty: shows the two connector cards, no saved connections, no recent imports.
+- Connection error: Odoo card shows failed test reason and [Fix credentials].
+- Storage unavailable: import actions disabled with link to Storage Settings.

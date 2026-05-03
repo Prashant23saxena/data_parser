@@ -1,0 +1,15 @@
+KriyaX Data Layer
+├── S-01 Home / Operations Overview
+├── S-02 Connectors
+│   ├── S-03 File Import Wizard
+│   └── S-04 Odoo Import Workspace
+├── S-05 Catalog
+│   ├── S-06 Table Detail
+│   │   ├── S-07 Table Management Confirmation (modal)
+│   │   └── S-08 Export Table Modal
+│   └── S-09 Code Workspace
+│       └── S-10 Agent Panel
+├── S-11 Saved Scripts
+├── S-12 Pipelines
+│   └── S-13 Pipeline Run Detail
+└── S-14 Storage Settings

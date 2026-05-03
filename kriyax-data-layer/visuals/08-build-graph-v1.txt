@@ -1,0 +1,67 @@
+# Build Dependency Visual — L8.4 v1
+
+Status: FROZEN
+
+Legend:
+  --> hard dependency
+  -.-> soft/mockable dependency through frozen L8.3 contract
+
+STREAM A: Existing Foundation
+  workspace + DuckDB + catalog + imports + execution + Odoo full fetch + pipeline manual run + frozen contracts
+        |
+        | enables all remaining streams
+        v
+
+STREAM B: Pipeline Scheduling + Failures
+  PipelineSchedule model --> scheduler restore --> failure notification state
+        |                         |
+        |                         v
+        |                    Home/Pipelines failure UI -.-> C-007 mocks
+        |
+        v
+  schedule controls UI -.-> C-007 mocks
+
+STREAM C: Odoo Incremental Sync + Pre-Step
+  OdooSyncCursor --> incremental upsert --> pipeline connector pre-step
+        |                                      ^
+        |                                      |
+        -.-> C-006 mocks                       |
+                                               |
+STREAM B pipeline orchestration ----------------
+
+STREAM D: Storage Management + Export
+  table rename/truncate/drop --> catalog update
+  CSV export endpoint
+        |
+        v
+  catalog action/export UI -.-> C-002/C-003 mocks
+
+STREAM E: Agentic Layer
+  schema-context prompt builder --> LLM generate/correct endpoints
+        |                                      |
+        -.-> C-003/C-005/C-008                 v
+                                      agent panel + insert code UI -.-> C-008 mocks
+
+STREAM F: Frontend Integration
+  Home summaries
+  filtered pipeline history
+  saved connection management
+  table actions/export UI
+  agent UI states
+        |
+        v
+
+STREAM G: Integration + UAT
+  schedule/failure E2E
+  Odoo pre-step E2E
+  table action/export E2E
+  agent generate/correct E2E
+  regression pass for Phase 1/2/3
+
+Critical path:
+  PipelineSchedule model
+    --> scheduler restore
+    --> OdooSyncCursor / incremental sync
+    --> connector pre-step orchestration
+    --> pipeline UI + Home failure summary
+    --> scheduled pipeline E2E/UAT

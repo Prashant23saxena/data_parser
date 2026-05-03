@@ -1,0 +1,31 @@
++--------------------------------------------------------------+
+| Modal over Catalog/Table Detail: Export table as CSV          |
++--------------------------------------------------------------+
+| Table: sales_orders_raw                                       |
+| Rows: 18,240        Columns: 18        Estimated size: 6.8 MB |
+|                                                              |
+| Export options                                                |
+| File name                                                     |
+| [ sales_orders_raw_2026_05_02.csv________________________ ]   |
+|                                                              |
+| Columns                                                       |
+| (x) All columns                                               |
+| ( ) Selected columns                                          |
+|                                                              |
+| Row scope                                                     |
+| (x) All rows                                                  |
+| ( ) Current filtered preview only                             |
+|                                                              |
+| Format                                                        |
+| Delimiter: [ comma v ]      Include header: [x]               |
+|                                                              |
+| Status                                                        |
+| Ready to export. The source table will not be modified.       |
+|                                                              |
+|                                  [Cancel] [Export CSV]        |
++--------------------------------------------------------------+
+
+Variants:
+- Exporting: progress message, buttons disabled except safe cancel if supported.
+- Download ready: "CSV generated" with [Download] and [Close].
+- Error: clear failure message with [Retry].

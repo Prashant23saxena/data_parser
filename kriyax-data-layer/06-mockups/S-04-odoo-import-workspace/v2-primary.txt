@@ -1,0 +1,42 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                               Odoo Import Workspace                 [Save]     |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Odoo: kriya_prod_odoo                                      Status: Connected  [Test] [Edit credentials] |
+| + Import data        |                                                                                           |
+| + Open code          | Left: connection/model browser. Center: fields and fetch. Right: sync/table plan.          |
+| + New pipeline       |                                                                                           |
+|                      | +----------------------------+ +-----------------------------------------+ +-----------------------------+ |
+| Navigation           | | Models                     | | Model: sale.order                       | | Import plan                 | |
+|   Home               | | [Search models_________]   | | Label: Sales Order                      | | New table name              | |
+| * Connectors         | |                            | | Technical name: sale.order              | | [ sales_orders_raw______ ]  | |
+|   Catalog            | | * sale.order       18,240  | | Records available: 18,240               | |                             | |
+|   Code Workspace     | |   sale.order.line  92,102  | | Last modified field: write_date         | | Mode                        | |
+|   Saved Scripts      | |   res.partner       4,128  | |                                         | | (x) Full fetch now          | |
+|   Pipelines          | |   product.template  2,902  | | Fields                                  | | ( ) Incremental sync        | |
+|   Storage Settings   | |   account.move      8,421  | | +-------------------------------------+ | |                             | |
+|                      | |                            | | | Use Field            Type     Sample | | | Delta configuration         | |
+| System               | | Saved connections          | | | [x] name            char     SO001  | | | Unique key: [ id________ ]  | |
+| DB: Ready            | | kriya_prod_odoo  Healthy   | | | [x] partner_id      many2one Acme   | | | Modified:   [ write_date_ ]  | |
+| Tables: 26           | | demo_sandbox     Needs auth| | | [x] amount_total    monetary 1240.5 | | | Domain/filter               | |
+| Scripts: 14          | |                            | | | [ ] message_ids     one2many  ...   | | | [ state in sale,done_____ ]  | |
+| Pipelines: 7         | +----------------------------+ | | [x] write_date      datetime ...   | | |                             | |
+|                      |                                | +-------------------------------------+ | | Schedule later?             | |
+|                      |                                |                                         | | [Create pipeline after import] |
+|                      |                                | Fetch options                            | |                             | |
+|                      |                                | Limit: [ 10000____ ]  Batch size: [500] | | Validation                  | |
+|                      |                                | [Preview records] [Fetch to new table]  | | - table name available      | |
+|                      |                                |                                         | | - fields selected: 4        | |
+|                      |                                | Preview                                  | | - delta key available       | |
+|                      |                                | +-------------------------------------+ | |                             | |
+|                      |                                | | id   name   partner   amount_total  | | | [Create table]             | |
+|                      |                                | | 81   SO081  Acme      1240.50       | | +-----------------------------+ |
+|                      |                                | | 82   SO082  Globex    931.20        | |                               |
+|                      |                                | +-------------------------------------+ |                               |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Connection form: URL, database, username, API key/password, test connection result.
+- Connection error: clear auth/network/database message; model browser disabled.
+- Model loading: skeleton model list and field table.
+- Syncing: fetch progress by batch with cancel disabled or carefully confirmed.
+- Success: created table link plus optional pipeline creation link.

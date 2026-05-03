@@ -1,0 +1,50 @@
+# OS and editor noise
+.DS_Store
+.idea/
+.vscode/
+
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node dependencies and frontend build output
+node_modules/
+dist/
+build/
+.next/
+coverage/
+test-results/
+playwright-report/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local app data and generated database files
+workspace/
+workspace_archives/
+output/
+*.db
+*.sqlite
+*.sqlite3
+*.duckdb
+*.parquet
+*.csv
+*.xlsx
+*.key
+*.vault
+*.enc
+
+# Code-review graph outputs
+.code-review-graph/
+graph.db
+*.graph.db

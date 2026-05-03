@@ -1,0 +1,46 @@
+# Entity Relationship Visual — L8.1 Data Model v1
+
+Status: FROZEN
+
+Workspace
+  |-- contains --> Warehouse (DuckDB file)
+  |                 |-- contains --> DataTable
+  |                                      |-- described by --> CatalogEntry
+  |                                                           |-- has many --> CatalogColumn
+  |
+  |-- contains --> UploadedFile
+  |                 |-- produces --> ImportInspection
+  |                                      |-- has many --> ColumnMapping
+  |                                                           |-- becomes --> CatalogColumn
+  |                 |-- commits to --> DataTable
+  |
+  |-- contains --> OdooConnection
+  |                 |-- reads live --> OdooModel
+  |                                      |-- has many --> OdooField
+  |                 |-- fetches into --> DataTable
+  |                 |-- advances --> OdooSyncCursor
+  |
+  |-- contains --> SavedScript
+  |                 |-- creates --> ScriptExecution
+  |                 |-- reads/writes --> DataTable
+  |                 |-- attached to --> Pipeline
+  |
+  |-- contains --> Pipeline
+                    |-- has one --> PipelineSchedule
+                    |-- may reference --> OdooSyncCursor
+                    |-- creates --> PipelineRun
+                                      |-- may open --> FailureNotification
+
+AgentConversation
+  |-- reads --> CatalogEntry
+  |-- reads --> CatalogColumn
+  |-- creates --> AgentGeneratedCode
+                    |-- may be inserted into --> SavedScript / Code Workspace editor
+                    |-- may be corrected from --> ScriptExecution stderr
+
+Source-of-truth rule:
+  - DuckDB wins for table data and live physical schema.
+  - JSON metadata sidecars win for app control-plane records.
+  - Filesystem wins for scripts and uploaded source files.
+  - External Odoo wins for model and field metadata.
+  - Runtime scheduler/agent state is restorable or transient, not canonical.

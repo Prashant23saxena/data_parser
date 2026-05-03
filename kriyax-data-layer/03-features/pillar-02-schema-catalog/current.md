@@ -1,0 +1,103 @@
+# Features — Schema & Catalog
+
+**Version:** v3
+**Status:** FROZEN
+**Last updated:** 2026-05-02
+**Pillar:** pillar-02-schema-catalog, from `02-pillars/current.md`
+
+## Feature index
+
+| ID | Name | Priority | Depends on |
+|---|---|---|---|
+| F-SC-001 | Table registry | must | — |
+| F-SC-002 | Column metadata viewer | must | F-SC-001 |
+| F-SC-003 | Auto-register on ingest | must | F-SC-001, F-DC-006 |
+| F-SC-004 | Browse & search catalog | must | F-SC-001 |
+| F-SC-005 | Preview table rows | must | F-SC-001 |
+
+## Features
+
+### F-SC-001: Table registry
+
+**Description:** Central list of all tables in the system — both ingested (from connectors) and derived (from Python/pandas transformations). Shows table name, source type (CSV/Odoo/derived), row count, and created/last-updated date.
+
+**Priority:** must
+
+**Dependencies:** none
+
+**Definition of done:** User can see a list of all tables with name, source, row count, and timestamps. List updates automatically as new tables are created.
+
+**Cross-pillar links:** Pillar 4 (Agentic Layer) — agent reads this registry to know what tables are available for Python transformations.
+
+---
+
+### F-SC-002: Column metadata viewer
+
+**Description:** For any table in the registry, show its columns with name, data type, nullable status. Uses the database's own information_schema or equivalent to pull live metadata.
+
+**Priority:** must
+
+**Dependencies:** F-SC-001
+
+**Definition of done:** User clicks a table and sees its full column list with types. Metadata is pulled live from the database (always accurate, never stale).
+
+**Cross-pillar links:** Pillar 4 (Agentic Layer) — agent reads column metadata to generate accurate Python/pandas code.
+
+---
+
+### F-SC-003: Auto-register on ingest
+
+**Description:** When a connector imports data (CSV upload or Odoo fetch), the resulting table is automatically registered in the catalog. No manual registration step needed.
+
+**Priority:** must
+
+**Dependencies:** F-SC-001, F-DC-006 (Data Connectors: Fetch Odoo records)
+
+**Definition of done:** After any successful import via Pillar 1 (Data Connectors), the new table appears in the catalog within seconds. User does not need to manually add it.
+
+**Cross-pillar links:** Pillar 1 (Data Connectors) — triggered by connector imports. Pillar 6 (Data Storage) — reads from backing database.
+
+---
+
+### F-SC-004: Browse & search catalog
+
+**Description:** Searchable interface to find tables by name, source type, or column name. Type-ahead search for quick discovery.
+
+**Priority:** must
+
+**Dependencies:** F-SC-001
+
+**Definition of done:** User can type a search query and see matching tables. Search covers table names and column names. Results are instant (type-ahead).
+
+**Cross-pillar links:** Pillar 3 (Code Workspace) — user browses catalog to pick tables before writing Python transformations.
+
+---
+
+### F-SC-005: Preview table rows
+
+**Description:** For any table in the catalog, show a small sample of rows so the user can understand the shape and actual values before writing Python/pandas transformations. This is a lightweight data preview, not a visualization or analysis tool.
+
+**Priority:** must
+
+**Dependencies:** F-SC-001
+
+**Definition of done:** User can open any catalog table and see the first sample rows with column headers. Preview is read-only, limited to a small row count, and works for ingested and derived tables.
+
+**Cross-pillar links:** Pillar 3 (Code Workspace) — user uses the preview to decide which tables to load with `load_table()`. Pillar 4 (Agentic Layer) — agent context can reference sample rows if later approved during L4/L7 research.
+
+---
+
+## Coverage map
+
+| Pillar in-scope item | Covered by |
+|---|---|
+| Table registry (list of all ingested and derived tables) | F-SC-001 |
+| Column metadata (name, type, nullable, description) | F-SC-002 |
+| Browsable catalog UI to explore what data exists | F-SC-004, F-SC-005 |
+| Lightweight data preview | F-SC-005 |
+| Metadata access for the agentic layer | Handled via direct DB metadata reads (information_schema or equivalent) — no separate API needed |
+| Schema evolution tracking | Parked to backlog (not needed now) |
+
+---
+
+*Frozen on: 2026-05-02*

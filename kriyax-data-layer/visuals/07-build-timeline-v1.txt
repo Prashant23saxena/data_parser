@@ -1,0 +1,24 @@
+L7 Build Timeline — KriyaX Data Layer v1
+
+Phase 0: Foundation and workspace shell (2-3 days)
+  -> app shell, FastAPI backend, workspace folders, DuckDB health
+
+Phase 1: Thin slice — File import to derived table (5-7 days)
+  -> upload file, choose schema, map columns/types, preview, create table
+  -> catalog/table detail
+  -> code workspace, load_table/save_table, save/rerun .py script
+
+Phase 2: Odoo connector (5-8 days)
+  -> connection form/test, browse models/fields, fetch records to new table
+
+Phase 3: Pipeline scheduling (4-6 days)
+  -> create pipeline from saved script/Odoo delta, manual run, schedule, history
+
+Phase 4: Agentic layer (5-8 days plus spike)
+  -> schema-aware chat, Python generation, insert into editor, traceback fix
+
+Phase 5: Robustness and export/management (4-6 days)
+  -> table management, export CSV, error/empty/loading states, recovery paths
+
+Build order:
+  Storage -> File connectors -> Catalog -> Code workspace -> Odoo -> Pipelines -> Agent -> Hardening

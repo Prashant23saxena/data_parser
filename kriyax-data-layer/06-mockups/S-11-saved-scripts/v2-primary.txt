@@ -1,0 +1,35 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                     Saved Scripts                    [New script] |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Saved Python scripts                                      [Search scripts_________] [Sort: recent v]   |
+| + Import data        |                                                                                           |
+| + Open code          | Scripts                                                                                   |
+| + New pipeline       |  +---------------------------------------------------------------------------------------------------+ |
+|                      |  | Name                    Last edited      Uses tables                  Pipeline use     Actions     | |
+| Navigation           |  | clean_customers.py       18 min ago       customers_raw, sales_orders  customer_sync    [Open]      | |
+|   Home               |  | margin_analysis.py       Yesterday        sales_orders_raw             none             [Open]      | |
+|   Connectors         |  | inventory_rollup.py      Yesterday        inventory_snapshot           inventory_daily  [Open]      | |
+|   Catalog            |  +---------------------------------------------------------------------------------------------------+ |
+|   Code Workspace     |                                                                                           |
+| * Saved Scripts      | Selected script: clean_customers.py                                                        |
+|   Pipelines          |  +---------------------------------------------------------------------------------------------------+ |
+|   Storage Settings   |  | Metadata                                                                                          | |
+|                      |  | Last run: failed 10:30 AM       Last saved by: local user       Output table: customers_enriched  | |
+| System               |  |                                                                                                   | |
+| DB: Ready            |  | Preview                                                                                           | |
+| Tables: 26           |  |  1 customers = load_table("customers_raw")                                                        | |
+| Scripts: 14          |  |  2 orders = load_table("sales_orders_raw")                                                        | |
+| Pipelines: 7         |  |  3 result = customers.merge(orders, on="customer_id", how="left")                                 | |
+|                      |  |  4 save_table(result, "customers_enriched")                                                       | |
+|                      |  |                                                                                                   | |
+|                      |  | Actions: [Open in code workspace] [Create pipeline] [Rename] [Duplicate]                          | |
+|                      |  +---------------------------------------------------------------------------------------------------+ |
+|                      |                                                                                           |
+|                      | Rename state                                                                               |
+|                      |  Existing names are blocked. A conflict shows: "A script named clean_customers.py already exists." |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Empty: no scripts yet, CTA to open Code Workspace.
+- Rename conflict: inline validation, save disabled.
+- Deleted/missing referenced table: warning shown in selected script metadata.

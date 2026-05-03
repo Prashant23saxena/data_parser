@@ -1,0 +1,28 @@
+# Integration Sequence Visuals — v1
+
+Status: FROZEN
+
+INT-004 Scheduled Pipeline:
+  Scheduler -> backend-pipelines-service: due pipeline
+  backend-pipelines-service -> backend-execution-service: run saved script
+  backend-execution-service -> DuckDB: read/write tables
+  backend-execution-service -> backend-catalog-service: upsert derived table
+  backend-pipelines-service -> runs JSON: write PipelineRun
+  frontend-pipelines -> backend-pipelines-service: GET runs/detail
+
+INT-006 Odoo Pre-Step:
+  frontend-pipelines -> backend-pipelines-service: POST run
+  backend-pipelines-service -> backend-odoo-service: sync(cursor)
+  backend-odoo-service -> Odoo XML-RPC: search_read domain cursor
+  backend-odoo-service -> DuckDB: upsert target table
+  backend-pipelines-service -> backend-execution-service: run script
+  backend-pipelines-service -> runs JSON: write step summary
+
+INT-008 Agent Correction:
+  frontend-agent-panel -> backend-agent-service: generate(prompt)
+  backend-agent-service -> backend-catalog-service: schema context
+  backend-agent-service -> LLM provider: code generation
+  frontend-agent-panel -> frontend-code-workspace: insert code
+  frontend-code-workspace -> backend-execution-service: run script
+  frontend-agent-panel -> backend-agent-service: correct(code, stderr)
+  backend-agent-service -> LLM provider: corrected candidate

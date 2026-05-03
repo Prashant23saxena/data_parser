@@ -1,0 +1,38 @@
++------------------------------------------------------------------------------------------------------------------+
+| KriyaX Data Layer                                                   Code Workspace                    [Save script] |
++----------------------+-------------------------------------------------------------------------------------------+
+| HOME                 | Python Workspace                                      Script: clean_customers.py  Status: unsaved changes |
+| + Import data        |                                                                 [Run] [Save as table] [Open Agent]      |
+| + Open code          | +---------------------------+ +---------------------------------------------------------------+ +-------+ |
+| + New pipeline       | | Tables                    | | Editor                                                        | | Agent | |
+|                      | | [Search tables________]   | |  1 import pandas as pd                                        | | dock  | |
+| Navigation           | |                            | |  2                                                           | |       | |
+|   Home               | | sales_orders_raw           | |  3 customers = load_table("customers_raw")                    | | Ask:  | |
+|   Connectors         | | 18 cols 18,240 rows        | |  4 orders = load_table("sales_orders_raw")                    | | "clean|
+|   Catalog            | | [Insert load code]         | |  5                                                           | | emails|
+| * Code Workspace     | |                            | |  6 result = customers.merge(orders, on="customer_id")         | | and   |
+|   Saved Scripts      | | customers_raw              | |  7 result["email"] = result["email"].str.lower().str.strip()  | | join" |
+|   Pipelines          | | 12 cols 4,128 rows         | |  8                                                           | | [Send]|
+|   Storage Settings   | | [Preview] [Columns]        | |  9 save_table(result, "customers_enriched")                   | |       | |
+|                      | |                            | +---------------------------------------------------------------+ |       | |
+| System               | | inventory_snapshot         | Output                                                         | |       | |
+| DB: Ready            | | 14 cols 91,002 rows        | +---------------------------------------------------------------+ |       | |
+| Tables: 26           | | [Insert load code]         | | Run completed in 1.8s                                         | |       | |
+| Scripts: 14          | |                            | | DataFrames: customers(4,128 rows), orders(18,240 rows)        | |       | |
+| Pipelines: 7         | | Column detail              | | Saved table: customers_enriched                               | |       | |
+|                      | | selected: customers_raw    | | [Open table] [Create pipeline from script]                    | |       | |
+|                      | | - customer_id integer      | +---------------------------------------------------------------+ +-------+ |
+|                      | | - email text               | Preview: customers_enriched                                                        |
+|                      | | - signup_date date         | +-----------------------------------------------------------------------------------+ |
+|                      | +---------------------------+ | customer_id  email                order_count amount_total last_order_date         | |
+|                      |                               | 1001         ops@acme.com         12          4200.50      2026-05-01              | |
+|                      |                               | 1002         billing@globex.com   4           931.20       2026-05-02              | |
+|                      |                               +-----------------------------------------------------------------------------------+ |
++----------------------+-------------------------------------------------------------------------------------------+
+
+Important alternate states:
+- Empty editor: starter snippet and table sidebar visible.
+- Running: editor locked or run button disabled; output streams progress.
+- Traceback: output panel shows error, line number, stack trace, and [Ask Agent to fix].
+- Save conflict: saving a script with existing name prompts rename.
+- Save table validation: table name required and cannot collide unless user chooses a new name.
