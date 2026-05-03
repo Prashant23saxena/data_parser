@@ -85,3 +85,31 @@ def test_commit_import_creates_duckdb_table_and_catalog_entry(monkeypatch, tmp_p
         "order_date",
         "amount",
     ]
+
+
+def test_schema_create_list_and_import_draft_persistence(monkeypatch, tmp_path):
+    workspace = _reload_workspace(monkeypatch, tmp_path)
+    csv_path = workspace.workspace_paths()["uploads"] / "draft_orders.csv"
+    csv_path.write_text("Customer,Amount\nAcme,12.50\n", encoding="utf-8")
+
+    from app.services.file_import import (
+        create_schema,
+        get_import_draft,
+        inspect_file,
+        list_import_drafts,
+        list_schemas,
+        save_import_draft,
+    )
+
+    schema = create_schema("Sandbox Tests")
+
+    assert schema["schema"] == "sandbox_tests"
+    assert "sandbox_tests" in list_schemas()
+
+    inspection = inspect_file(csv_path)
+    draft = save_import_draft(inspection)
+
+    assert draft["id"]
+    assert draft["fileName"] == "draft_orders.csv"
+    assert list_import_drafts()[0]["id"] == draft["id"]
+    assert get_import_draft(draft["id"])["previewRows"][0]["Customer"] == "Acme"

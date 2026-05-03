@@ -36,7 +36,7 @@ def test_llm_settings_api_lists_supported_providers(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     providers = {item["provider"] for item in response.json()["supportedProviders"]}
-    assert providers == {"openai", "anthropic"}
+    assert providers == {"openai", "kimi", "anthropic", "azure-openai"}
 
 
 def test_llm_status_never_returns_api_key(monkeypatch, tmp_path):

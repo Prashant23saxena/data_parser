@@ -171,7 +171,9 @@ def complete_text(prompt: str, provider: str | None = None) -> str:
         ],
     )
     result = execute_chat(request, config=config, request_preview=prompt)
-    return str(result["response"])
+    if not result["success"]:
+        raise RuntimeError(result["error"] or "Provider request failed.")
+    return str(result["response"] or "")
 
 
 def runtime_status(provider: str | None = None) -> dict[str, Any]:

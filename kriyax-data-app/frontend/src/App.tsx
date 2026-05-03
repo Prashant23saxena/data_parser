@@ -5,6 +5,7 @@ import {
   Braces,
   ChevronDown,
   ChevronRight,
+  Copy,
   Database,
   FileSpreadsheet,
   FileUp,
@@ -15,7 +16,9 @@ import {
   Network,
   PlugZap,
   RefreshCcw,
+  Save,
   ScrollText,
+  Send,
   Settings,
   ShieldCheck,
   Table2,
@@ -26,13 +29,16 @@ import type { ChangeEvent, ComponentType, ReactNode } from "react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   acknowledgePipelineFailure,
+  chatWithAgent,
   commitImport,
-  correctAgentCode,
+  createCatalogSchema,
   createLlmProfile,
   createPipeline,
+  deleteImportDraft,
   deleteLlmProfile,
+  fetchCatalogSchemas,
   fetchCatalogTables,
-  fetchLlmStatus,
+  fetchImportDrafts,
   fetchOdooFields,
   fetchOdooModels,
   fetchOdooRecords,
@@ -44,8 +50,6 @@ import {
   fetchSavedScripts,
   fetchStorageStatus,
   fetchTablePreview,
-  followUpAgentCode,
-  generateAgentCode,
   getLlmConfig,
   getLlmProfiles,
   dropCatalogTable,
@@ -55,6 +59,7 @@ import {
   runLlmPlayground,
   runPythonScript,
   saveLlmVaultKey,
+  savePythonScript,
   saveOdooConnection,
   setDefaultLlmProfile,
   setPipelineEnabled,
@@ -63,11 +68,12 @@ import {
   truncateCatalogTable,
   testOdooConnection,
   uploadImportFile,
+  type AgentChatMessage,
   type CatalogTable,
+  type ImportDraft,
   type ImportColumn,
   type ImportInspection,
   type LlmProfile,
-  type LlmRuntimeStatus,
   type LlmProvider,
   type LlmPlaygroundResult,
   type LlmConfig,
@@ -103,11 +109,20 @@ const navItems: NavItem[] = [
 ];
 
 function topNavForPath(path: string) {
+  path = canonicalPath(path);
   if (path.startsWith("/connectors")) return navItems.find((item) => item.path === "/connectors") ?? navItems[0];
   if (path.startsWith("/catalog")) return navItems.find((item) => item.path === "/catalog") ?? navItems[0];
   if (path.startsWith("/code")) return navItems.find((item) => item.path === "/code") ?? navItems[0];
   if (path.startsWith("/pipelines")) return navItems.find((item) => item.path === "/pipelines") ?? navItems[0];
   return navItems.find((item) => item.path === path) ?? navItems[0];
+}
+
+function canonicalPath(path: string) {
+  if (path === "/file-import") return "/connectors/file-import";
+  if (path === "/odoo-import") return "/connectors/odoo";
+  if (path === "/code-workspace") return "/code";
+  if (path === "/saved-scripts") return "/scripts";
+  return path;
 }
 
 type RouteMeta = {
@@ -131,23 +146,6 @@ function titleForPath(path: string): RouteMeta {
   return { id: item.id, label: item.label, subtitle: "Local-first enterprise data workspace.", breadcrumb: [item.label] };
 }
 
-const approvedScreens = [
-  "S-01 Home / Operations Overview",
-  "S-02 Connectors",
-  "S-03 File Import Wizard",
-  "S-04 Odoo Import Workspace",
-  "S-05 Catalog",
-  "S-06 Table Detail",
-  "S-07 Table Management Confirmation",
-  "S-08 Export Table Modal",
-  "S-09 Code Workspace",
-  "S-10 Agent Panel",
-  "S-11 Saved Scripts",
-  "S-12 Pipelines",
-  "S-13 Pipeline Run Detail",
-  "S-14 Storage Settings"
-];
-
 function usePath() {
   const [path, setPath] = useState(window.location.pathname);
 
@@ -167,6 +165,7 @@ function usePath() {
 
 export function App() {
   const { path, navigate } = usePath();
+  const canonical = canonicalPath(path);
   const [storage, setStorage] = useState<StorageStatus | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -178,8 +177,8 @@ export function App() {
       .catch((error: Error) => setStorageError(error.message));
   }, []);
 
-  const active = useMemo(() => topNavForPath(path), [path]);
-  const title = useMemo(() => titleForPath(path), [path]);
+  const active = useMemo(() => topNavForPath(canonical), [canonical]);
+  const title = useMemo(() => titleForPath(canonical), [canonical]);
 
   const expandSidebar = () => {
     if (sidebarTimer.current) window.clearTimeout(sidebarTimer.current);
@@ -250,7 +249,7 @@ export function App() {
             {storage?.status ?? "checking"}
           </div>
         </header>
-        <Screen path={path} storage={storage} navigate={navigate} />
+        <Screen path={canonical} storage={storage} navigate={navigate} />
       </main>
     </div>
   );
@@ -270,10 +269,10 @@ function Screen({ path, storage, navigate }: { path: string; storage: StorageSta
   if (path === "/pipelines") return <Pipelines navigate={navigate} />;
   if (path === "/pipelines/run") return <RunDetail />;
   if (path === "/storage") return <StorageSettings storage={storage} />;
-  return <Home storage={storage} />;
+  return <Home storage={storage} navigate={navigate} />;
 }
 
-function Home({ storage }: { storage: StorageStatus | null }) {
+function Home({ storage, navigate }: { storage: StorageStatus | null; navigate: (nextPath: string) => void }) {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [failures, setFailures] = useState<PipelineFailure[]>([]);
   const [tableCount, setTableCount] = useState(0);
@@ -311,15 +310,23 @@ function Home({ storage }: { storage: StorageStatus | null }) {
         </div>
       ) : null}
       <Panel title="Start Here">
-        <ActionRow icon={<FileInput size={18} />} title="Import CSV or Excel" meta="Choose schema, map columns, preview rows, create table" />
-        <ActionRow icon={<Boxes size={18} />} title="Connect Odoo" meta="Connection form and model browser arrive in Phase 2" />
-        <ActionRow icon={<Braces size={18} />} title="Write Python" meta="Load tables as DataFrames and save derived tables" />
-      </Panel>
-      <Panel title="Approved Screen Contract">
-        <div className="screen-list">
-          {approvedScreens.map((screen) => (
-            <span key={screen}>{screen}</span>
-          ))}
+        <div className="launch-grid">
+          <button className="launch-action" onClick={() => navigate("/connectors/file-import")}>
+            <FileInput size={18} />
+            <span><strong>Import a table</strong><small>CSV or Excel into a chosen schema</small></span>
+          </button>
+          <button className="launch-action" onClick={() => navigate("/code")}>
+            <Braces size={18} />
+            <span><strong>Open Code Workspace</strong><small>Write Python, chat with the agent, run results</small></span>
+          </button>
+          <button className="launch-action" onClick={() => navigate("/scripts")}>
+            <ScrollText size={18} />
+            <span><strong>Saved Scripts</strong><small>Only scripts explicitly saved by you</small></span>
+          </button>
+          <button className="launch-action" onClick={() => navigate("/pipelines")}>
+            <Workflow size={18} />
+            <span><strong>Pipelines</strong><small>Schedule saved scripts when they are ready</small></span>
+          </button>
         </div>
       </Panel>
     </section>
@@ -382,11 +389,24 @@ function Connectors({ navigate }: { navigate: (nextPath: string) => void }) {
 function FileImport() {
   const [inspection, setInspection] = useState<ImportInspection | null>(null);
   const [targetSchema, setTargetSchema] = useState("raw_files");
+  const [schemas, setSchemas] = useState<string[]>(["raw_files", "staging", "curated"]);
+  const [newSchemaName, setNewSchemaName] = useState("");
+  const [drafts, setDrafts] = useState<ImportDraft[]>([]);
   const [tableName, setTableName] = useState("sales_orders_raw");
   const [isUploading, setIsUploading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const refreshImportState = async () => {
+    const [nextSchemas, nextDrafts] = await Promise.all([fetchCatalogSchemas(), fetchImportDrafts()]);
+    setSchemas(nextSchemas);
+    setDrafts(nextDrafts);
+  };
+
+  useEffect(() => {
+    refreshImportState().catch((value: Error) => setError(value.message));
+  }, []);
 
   const chooseFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -399,6 +419,7 @@ function FileImport() {
       const nextInspection = await uploadImportFile(file);
       setInspection(nextInspection);
       setTableName(suggestTableName(file.name));
+      await refreshImportState();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed");
     } finally {
@@ -440,13 +461,51 @@ function FileImport() {
         filePath: inspection.filePath,
         targetSchema,
         tableName,
-        columns: inspection.columns
+        columns: inspection.columns,
+        draftId: inspection.draftId
       });
       setMessage(`Created ${result.qualifiedName} with ${result.rowCount} rows.`);
+      setInspection(null);
+      await refreshImportState();
     } catch (commitError) {
       setError(commitError instanceof Error ? commitError.message : "Import failed");
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const resumeDraft = (draft: ImportDraft) => {
+    setInspection({ ...draft, draftId: draft.id });
+    setTableName(suggestTableName(draft.fileName));
+    setMessage(`Resumed ${draft.fileName}.`);
+    setError(null);
+  };
+
+  const removeDraft = async (draft: ImportDraft) => {
+    setError(null);
+    setMessage(null);
+    try {
+      await deleteImportDraft(draft.id);
+      if (inspection?.draftId === draft.id) setInspection(null);
+      await refreshImportState();
+      setMessage(`Removed draft ${draft.fileName}.`);
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "Draft delete failed");
+    }
+  };
+
+  const addSchema = async () => {
+    if (!newSchemaName.trim()) return;
+    setError(null);
+    setMessage(null);
+    try {
+      const created = await createCatalogSchema(newSchemaName);
+      setSchemas(created.schemas);
+      setTargetSchema(created.schema);
+      setNewSchemaName("");
+      setMessage(`Schema '${created.schema}' is ready.`);
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "Schema create failed");
     }
   };
 
@@ -460,9 +519,31 @@ function FileImport() {
           <input type="file" accept=".csv,.xlsx" onChange={chooseFile} />
         </label>
         <div className="form-grid">
-          <label>Target schema<select value={targetSchema} onChange={(event) => setTargetSchema(event.target.value)}><option>raw_files</option><option>staging</option><option>curated</option></select></label>
+          <SchemaPicker
+            label="Target schema"
+            value={targetSchema}
+            schemas={schemas}
+            newSchemaName={newSchemaName}
+            onChange={setTargetSchema}
+            onNewSchemaName={setNewSchemaName}
+            onAddSchema={addSchema}
+          />
           <label>New table name<input value={tableName} onChange={(event) => setTableName(event.target.value)} placeholder="sales_orders_raw" /></label>
         </div>
+        {drafts.length ? (
+          <div className="draft-list">
+            <strong>Import drafts</strong>
+            {drafts.map((draft) => (
+              <div className="draft-row" key={draft.id}>
+                <span>{draft.fileName} · {draft.rowCount} rows</span>
+                <div className="row-actions">
+                  <button className="table-link-button" onClick={() => resumeDraft(draft)}>Resume</button>
+                  <button className="table-link-button" onClick={() => removeDraft(draft)}>Remove</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {inspection?.requiresRename ? <div className="notice warning">Duplicate source column names found. Rename the target columns before import.</div> : null}
         {error ? <div className="notice error">{error}</div> : null}
         {message ? <div className="notice success">{message}</div> : null}
@@ -526,6 +607,8 @@ function OdooImport() {
   const [fields, setFields] = useState<OdooField[]>([]);
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
   const [targetSchema, setTargetSchema] = useState("raw_odoo");
+  const [schemas, setSchemas] = useState<string[]>(["raw_odoo", "staging", "curated"]);
+  const [newSchemaName, setNewSchemaName] = useState("");
   const [tableName, setTableName] = useState("res_partner");
   const [domainFilter, setDomainFilter] = useState("[]");
   const [recordLimit, setRecordLimit] = useState("1000");
@@ -541,6 +624,27 @@ function OdooImport() {
   const canTest = Object.values(connection).every((value) => value.trim());
   const supportedFields = fields.filter((field) => field.supported);
   const canFetch = Boolean(connectionReady && selectedModel && selectedFields.size > 0 && tableName.trim() && !loading);
+
+  useEffect(() => {
+    fetchCatalogSchemas()
+      .then(setSchemas)
+      .catch((value: Error) => setError(value.message));
+  }, []);
+
+  const addSchema = async () => {
+    if (!newSchemaName.trim()) return;
+    setError(null);
+    setMessage(null);
+    try {
+      const created = await createCatalogSchema(newSchemaName);
+      setSchemas(created.schemas);
+      setTargetSchema(created.schema);
+      setNewSchemaName("");
+      setMessage(`Schema '${created.schema}' is ready.`);
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "Schema create failed");
+    }
+  };
 
   const testConnection = async () => {
     setLoading("connection");
@@ -695,7 +799,15 @@ function OdooImport() {
 
       <Panel title="4. Fetch Records">
         <div className="form-grid">
-          <label>Target schema<select value={targetSchema} onChange={(event) => setTargetSchema(event.target.value)}><option>raw_odoo</option><option>staging</option><option>curated</option></select></label>
+          <SchemaPicker
+            label="Target schema"
+            value={targetSchema}
+            schemas={schemas}
+            newSchemaName={newSchemaName}
+            onChange={setTargetSchema}
+            onNewSchemaName={setNewSchemaName}
+            onAddSchema={addSchema}
+          />
           <label>New table name<input value={tableName} onChange={(event) => setTableName(event.target.value)} placeholder="res_partner" /></label>
           <label>Domain filter<input value={domainFilter} onChange={(event) => setDomainFilter(event.target.value)} placeholder='[["customer","=",true]]' /></label>
           <label>Record limit<input value={recordLimit} onChange={(event) => setRecordLimit(event.target.value)} inputMode="numeric" /></label>
@@ -964,19 +1076,23 @@ function ExportTable() {
   );
 }
 
-function CodeWorkspace({ initialAgentOpen = false }: { initialAgentOpen?: boolean }) {
+function CodeWorkspace({ initialAgentOpen = true }: { initialAgentOpen?: boolean }) {
   const { tables, error, reload } = useCatalogTables();
-  const [scriptName, setScriptName] = useState("transform_orders.py");
+  const [scriptName, setScriptName] = useState("analysis.py");
   const [code, setCode] = useState(defaultPythonCode(tables[0]?.qualifiedName));
   const [result, setResult] = useState<RunScriptResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [agentOpen, setAgentOpen] = useState(initialAgentOpen);
   const [previewTable, setPreviewTable] = useState<TablePreview | null>(null);
+  const [selectedTableName, setSelectedTableName] = useState<string | null>(tables[0]?.qualifiedName ?? null);
   const [outputTab, setOutputTab] = useState<"result" | "stdout" | "stderr" | "saved">("result");
 
   useEffect(() => {
     if (!tables[0]) return;
+    setSelectedTableName((current) => current ?? tables[0].qualifiedName);
     setCode((current) =>
       current.includes("raw_files.sales_orders_raw")
         ? defaultPythonCode(tables[0].qualifiedName)
@@ -1016,13 +1132,36 @@ function CodeWorkspace({ initialAgentOpen = false }: { initialAgentOpen?: boolea
     }
   };
 
+  const saveCurrentScript = async () => {
+    setIsSaving(true);
+    setRunError(null);
+    setSaveMessage(null);
+    try {
+      const saved = await savePythonScript({ scriptName, code });
+      setScriptName(saved.name);
+      setSaveMessage(`${saved.name} saved.`);
+    } catch (errorValue) {
+      setRunError(errorValue instanceof Error ? errorValue.message : "Script save failed");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const insertAtEnd = (nextCode: string) => {
+    setCode((current) => `${current.trim()}\n\n${nextCode.trim()}\n`);
+  };
+
   return (
     <section className={agentOpen ? "code-grid agent-open" : "code-grid"}>
       <SchemaBrowser
         tables={tables}
         error={error}
-        onInsertLoad={(table) => setCode((current) => `${current.trim()}\n\ndf = load_table("${table.qualifiedName}")\nshow(df.head(), name="${table.tableName}_preview")\n`)}
+        onInsertLoad={(table) => {
+          setSelectedTableName(table.qualifiedName);
+          setCode((current) => `${current.trim()}\n\ndf = load_table("${table.qualifiedName}")\nshow(df.head(), name="${table.tableName}_preview")\n`);
+        }}
         onPreview={(table) => {
+          setSelectedTableName(table.qualifiedName);
           setPreviewTable(null);
           fetchTablePreview(table.schema, table.tableName).then(setPreviewTable).catch(() => setPreviewTable({ schema: table.schema, tableName: table.tableName, columns: [], rows: [] }));
         }}
@@ -1030,12 +1169,18 @@ function CodeWorkspace({ initialAgentOpen = false }: { initialAgentOpen?: boolea
       />
       <div className="code-main-column">
         <Panel title="Python Editor">
-          <label>Script name<input value={scriptName} onChange={(event) => setScriptName(event.target.value)} /></label>
-          <textarea className="editor code-textarea" value={code} onChange={(event) => setCode(event.target.value)} />
-          <div className="panel-actions row-actions">
-            <button className="table-link-button" onClick={() => setAgentOpen((current) => !current)}>{agentOpen ? "Close Agent" : "Open Agent"}</button>
-            <button className="primary-button" onClick={runCode} disabled={isRunning || !scriptName.trim() || !code.trim()}>{isRunning ? "Running..." : "Run script"}</button>
+          <div className="editor-toolbar">
+            <label>Script name<input value={scriptName} onChange={(event) => setScriptName(event.target.value)} /></label>
+            <div className="row-actions">
+              <button className="icon-button" onClick={saveCurrentScript} disabled={isSaving || !scriptName.trim() || !code.trim()} title="Save script">
+                <Save size={15} />{isSaving ? "Saving" : "Save"}
+              </button>
+              <button className="icon-button" onClick={() => setAgentOpen((current) => !current)} title={agentOpen ? "Hide agent" : "Show agent"}><Send size={15} />Agent</button>
+              <button className="primary-button" onClick={runCode} disabled={isRunning || !scriptName.trim() || !code.trim()}>{isRunning ? "Running..." : "Run"}</button>
+            </div>
           </div>
+          <textarea className="editor code-textarea" value={code} onChange={(event) => setCode(event.target.value)} />
+          {saveMessage ? <div className="notice success">{saveMessage}</div> : null}
         </Panel>
         <Panel title="Run Output">
           {runError ? <div className="notice error">{runError}</div> : null}
@@ -1069,85 +1214,121 @@ function CodeWorkspace({ initialAgentOpen = false }: { initialAgentOpen?: boolea
           )}
         </Panel>
       </div>
-      {agentOpen ? <AgentPanel embedded onInsertCode={setCode} priorCode={code} lastError={result?.stderr || runError || ""} /> : null}
+      {agentOpen ? (
+        <AgentPanel
+          embedded
+          onInsertCode={insertAtEnd}
+          onReplaceCode={setCode}
+          priorCode={code}
+          selectedTable={selectedTableName}
+          lastError={result?.stderr || runError || ""}
+        />
+      ) : null}
     </section>
   );
 }
 
-function AgentPanel({ embedded = false, onInsertCode, priorCode = "", lastError = "" }: { embedded?: boolean; onInsertCode?: (code: string) => void; priorCode?: string; lastError?: string }) {
-  const [prompt, setPrompt] = useState("Create a cleaned curated table from the first available table");
-  const [tracebackText, setTracebackText] = useState("");
-  const [code, setCode] = useState(priorCode);
-  const [message, setMessage] = useState<string | null>(null);
+function AgentPanel({
+  embedded = false,
+  onInsertCode,
+  onReplaceCode,
+  priorCode = "",
+  selectedTable,
+  lastError = ""
+}: {
+  embedded?: boolean;
+  onInsertCode?: (code: string) => void;
+  onReplaceCode?: (code: string) => void;
+  priorCode?: string;
+  selectedTable?: string | null;
+  lastError?: string;
+}) {
+  const [draft, setDraft] = useState("Create a cleaned curated table from the selected table");
+  const [messages, setMessages] = useState<AgentChatMessage[]>([
+    { role: "assistant", content: "Ask a question or ask me to write Python for the editor." }
+  ]);
+  const [generatedCode, setGeneratedCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<string | null>(null);
-  const [runtime, setRuntime] = useState<LlmRuntimeStatus | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchLlmStatus().then(setRuntime).catch(() => setRuntime(null));
-  }, []);
-
-  const runAgent = async (mode: "generate" | "follow-up" | "correct") => {
-    setLoading(mode);
+  const sendMessage = async () => {
+    if (!draft.trim() || loading) return;
+    const nextMessages: AgentChatMessage[] = [...messages, { role: "user", content: draft.trim() }];
+    setMessages(nextMessages);
+    setDraft("");
+    setLoading(true);
     setError(null);
-    setMessage(null);
     try {
-      const result = mode === "correct"
-        ? await correctAgentCode(code, tracebackText)
-        : mode === "follow-up"
-          ? await followUpAgentCode(prompt, code)
-          : await generateAgentCode(prompt);
-      setCode(result.code);
-      setMessage(result.message);
+      const result = await chatWithAgent({
+        messages: nextMessages,
+        currentCode: priorCode,
+        selectedTable,
+        lastRunError: lastError
+      });
+      setMessages([...nextMessages, { role: "assistant", content: result.message }]);
+      if (result.code) setGeneratedCode(result.code);
     } catch (value) {
-      setError(value instanceof Error ? value.message : "Agent request failed");
+      setError(value instanceof Error ? value.message : "Agent chat failed");
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
-  const insertIntoEditor = () => {
-    if (onInsertCode) {
-      onInsertCode(code);
-      return;
+  const copyGeneratedCode = async () => {
+    if (!generatedCode.trim()) return;
+    await navigator.clipboard.writeText(generatedCode);
+  };
+
+  const insertGeneratedCode = () => {
+    if (!generatedCode.trim()) return;
+    if (onInsertCode) onInsertCode(generatedCode);
+    else {
+      window.sessionStorage.setItem("agentCodeDraft", generatedCode);
+      pushRoute("/code");
     }
-    window.sessionStorage.setItem("agentCodeDraft", code);
-    pushRoute("/code");
+  };
+
+  const replaceEditor = () => {
+    if (!generatedCode.trim()) return;
+    if (onReplaceCode) onReplaceCode(generatedCode);
+    else {
+      window.sessionStorage.setItem("agentCodeDraft", generatedCode);
+      pushRoute("/code");
+    }
   };
 
   const content = (
-    <>
-      <Panel title="Agent Workbench">
-        <div className="runtime-banner">
-          <span className={runtime?.status === "ready" ? "dot ready" : "dot"} />
-          <strong>{runtime?.message ?? "Checking runtime..."}</strong>
+    <Panel title="Agent Chat">
+      <div className="agent-meta-row">
+        <span>{selectedTable ?? "No table selected"}</span>
+        {lastError ? <button className="table-link-button" onClick={() => setDraft(`Fix this error in the current code:\n${lastError}`)}>Use last error</button> : null}
+      </div>
+      <div className="chat-stream">
+        {messages.map((message, index) => (
+          <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
+            <strong>{message.role === "assistant" ? "Agent" : "You"}</strong>
+            <span>{message.content}</span>
+          </div>
+        ))}
+        {loading ? <div className="chat-message assistant"><strong>Agent</strong><span>Working...</span></div> : null}
+      </div>
+      <label>Message<textarea className="editor compact-editor" value={draft} onChange={(event) => setDraft(event.target.value)} /></label>
+      <div className="panel-actions row-actions">
+        <button className="primary-button" onClick={sendMessage} disabled={loading || !draft.trim()}><Send size={14} />Send</button>
+      </div>
+      {error ? <div className="notice error">{error}</div> : null}
+      <div className="generated-code-box">
+        <div className="generated-code-header">
+          <strong>Code from chat</strong>
+          <div className="row-actions">
+            <button className="icon-button" onClick={copyGeneratedCode} disabled={!generatedCode.trim()} title="Copy code"><Copy size={14} />Copy</button>
+            <button className="icon-button" onClick={insertGeneratedCode} disabled={!generatedCode.trim()} title="Insert code">Insert</button>
+            <button className="icon-button" onClick={replaceEditor} disabled={!generatedCode.trim()} title="Replace editor">Replace</button>
+          </div>
         </div>
-        <div className="message-stream">
-          <div><strong>Agent</strong><span>Ask for Python transformations, corrections, or follow-up changes.</span></div>
-          {message ? <div><strong>Runtime</strong><span>{message}</span></div> : null}
-        </div>
-        <label>Request<textarea className="editor compact-editor" value={prompt} onChange={(event) => setPrompt(event.target.value)} /></label>
-        <div className="panel-actions row-actions">
-          <button className="primary-button" onClick={() => runAgent("generate")} disabled={loading !== null || !prompt.trim()}>{loading === "generate" ? "Generating..." : "Generate code"}</button>
-          <button className="table-link-button" onClick={() => runAgent("follow-up")} disabled={loading !== null || !prompt.trim() || !code.trim()}>Follow up</button>
-        </div>
-        {error ? <div className="notice error">{error}</div> : null}
-      </Panel>
-      <Panel title="Generated Code">
-        <textarea className="editor code-textarea" value={code} onChange={(event) => setCode(event.target.value)} />
-        <div className="panel-actions row-actions">
-          <button className="primary-button" onClick={insertIntoEditor} disabled={!code.trim()}>Insert into editor</button>
-          <button className="table-link-button" onClick={() => onInsertCode?.(code)} disabled={!code.trim() || !onInsertCode}>Replace editor</button>
-        </div>
-      </Panel>
-      <Panel title="Correct Failed Run">
-        <label>Traceback<textarea className="editor" value={tracebackText} onChange={(event) => setTracebackText(event.target.value)} /></label>
-        <div className="panel-actions row-actions">
-          <button className="table-link-button" onClick={() => setTracebackText(lastError)} disabled={!lastError.trim()}>Use last error</button>
-          <button className="table-link-button" onClick={() => runAgent("correct")} disabled={loading !== null || !tracebackText.trim() || !code.trim()}>Suggest correction</button>
-        </div>
-      </Panel>
-    </>
+        <textarea className="editor generated-code-textarea" value={generatedCode} onChange={(event) => setGeneratedCode(event.target.value)} placeholder="Generated Python appears here." />
+      </div>
+    </Panel>
   );
 
   return embedded ? <div className="agent-dock">{content}</div> : <section className="code-grid">{content}</section>;
@@ -1290,11 +1471,11 @@ function SavedScripts() {
               {scripts.map((script) => (
                 <tr key={script.name}>
                   <td>{script.name}</td>
-                  <td>{script.updatedAt}</td>
+                  <td>{formatDate(script.updatedAt)}</td>
                   <td>{script.size}</td>
                   <td>
                     <button className="table-link-button" onClick={() => openScript(script.name)}>
-                      Open {script.name}
+                      Open
                     </button>
                   </td>
                 </tr>
@@ -1302,7 +1483,7 @@ function SavedScripts() {
             </tbody>
           </table>
         ) : (
-          <div className="empty-state">No saved scripts yet. Run a script from Code Workspace to save it here.</div>
+          <div className="empty-state">No saved scripts yet. Use Save Script in Code Workspace when a script is ready.</div>
         )}
       </Panel>
     </section>
@@ -1315,7 +1496,7 @@ function Pipelines({ navigate }: { navigate: (nextPath: string) => void }) {
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [failures, setFailures] = useState<PipelineFailure[]>([]);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [pipelineName, setPipelineName] = useState("Daily refresh");
+  const [pipelineName, setPipelineName] = useState("");
   const [scriptId, setScriptId] = useState("");
   const [connectorSyncId, setConnectorSyncId] = useState("");
   const [scheduleDrafts, setScheduleDrafts] = useState<Record<string, PipelineSchedulePayload>>({});
@@ -1884,6 +2065,39 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+function SchemaPicker({
+  label,
+  value,
+  schemas,
+  newSchemaName,
+  onChange,
+  onNewSchemaName,
+  onAddSchema
+}: {
+  label: string;
+  value: string;
+  schemas: string[];
+  newSchemaName: string;
+  onChange: (value: string) => void;
+  onNewSchemaName: (value: string) => void;
+  onAddSchema: () => void;
+}) {
+  return (
+    <label className="schema-picker">
+      {label}
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {schemas.map((schema) => <option value={schema} key={schema}>{schema}</option>)}
+      </select>
+      <span className="schema-add-row">
+        <input value={newSchemaName} onChange={(event) => onNewSchemaName(event.target.value)} placeholder="new_schema" />
+        <button type="button" className="icon-button" onClick={onAddSchema} disabled={!newSchemaName.trim()} title="Add schema">
+          <Database size={14} />
+        </button>
+      </span>
+    </label>
+  );
+}
+
 function DataPreview({ rows }: { rows: Record<string, string | number | boolean | null>[] }) {
   const columns = rows[0] ? Object.keys(rows[0]) : [];
 
@@ -1936,7 +2150,8 @@ function useCatalogTables() {
 }
 
 function defaultPythonCode(tableName = "raw_files.sales_orders_raw") {
-  return `df = load_table("${tableName}")\nprint(f"loaded {len(df)} rows")\nsave_table(df, "sales_orders_curated", schema="curated")`;
+  const outputName = `${tableName.split(".").pop() ?? "table"}_curated`;
+  return `df = load_table("${tableName}")\nprint(f"loaded {len(df)} rows")\nsave_table(df, "${outputName}", schema="curated")`;
 }
 
 function suggestTableName(fileName: string) {

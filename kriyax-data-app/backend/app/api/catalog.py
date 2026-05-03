@@ -1,7 +1,16 @@
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Field
 
-from app.services.file_import import drop_table, export_table_csv, list_catalog_tables, preview_table, rename_table, truncate_table
+from app.services.file_import import (
+    create_schema,
+    drop_table,
+    export_table_csv,
+    list_catalog_tables,
+    list_schemas,
+    preview_table,
+    rename_table,
+    truncate_table,
+)
 
 router = APIRouter()
 
@@ -14,9 +23,26 @@ class ConfirmTableRequest(BaseModel):
     confirmation: str = Field(min_length=1)
 
 
+class CreateSchemaRequest(BaseModel):
+    schemaName: str = Field(min_length=1)
+
+
 @router.get("/tables")
 def list_tables() -> dict[str, list[dict[str, object]]]:
     return {"tables": list_catalog_tables()}
+
+
+@router.get("/schemas")
+def get_schemas() -> dict[str, list[str]]:
+    return {"schemas": list_schemas()}
+
+
+@router.post("/schemas")
+def add_schema(request: CreateSchemaRequest) -> dict[str, object]:
+    try:
+        return create_schema(request.schemaName)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.patch("/tables/{schema}/{table_name}/rename")

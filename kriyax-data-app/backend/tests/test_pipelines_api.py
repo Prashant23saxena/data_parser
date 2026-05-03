@@ -8,7 +8,7 @@ def test_pipeline_api_create_run_history_and_toggle(monkeypatch, tmp_path):
     client = TestClient(app)
 
     client.post(
-        "/api/execution/run",
+        "/api/execution/scripts",
         json={"scriptName": "hello_pipeline.py", "code": 'print("pipeline hello")\n'},
     )
 
@@ -61,7 +61,7 @@ def test_pipeline_api_rejects_invalid_cron(monkeypatch, tmp_path):
     client = TestClient(app)
 
     client.post(
-        "/api/execution/run",
+        "/api/execution/scripts",
         json={"scriptName": "cron_pipeline.py", "code": 'print("cron")\n'},
     )
     create_response = client.post(
@@ -84,7 +84,7 @@ def test_pipeline_api_lists_and_acknowledges_failures(monkeypatch, tmp_path):
     client = TestClient(app)
 
     client.post(
-        "/api/execution/run",
+        "/api/execution/scripts",
         json={"scriptName": "failing_pipeline.py", "code": 'raise RuntimeError("api boom")\n'},
     )
     create_response = client.post(
@@ -129,7 +129,7 @@ def test_pipeline_api_run_includes_odoo_pre_step(monkeypatch, tmp_path):
     client = TestClient(app)
 
     client.post(
-        "/api/execution/run",
+        "/api/execution/scripts",
         json={"scriptName": "sync_pipeline.py", "code": 'print("after sync")\n'},
     )
     create_response = client.post(

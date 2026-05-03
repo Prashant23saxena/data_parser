@@ -4,7 +4,14 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
-from app.services.file_import import commit_import, inspect_file
+from app.services.file_import import (
+    commit_import,
+    delete_import_draft,
+    get_import_draft,
+    inspect_file,
+    list_import_drafts,
+    save_import_draft,
+)
 from app.services.workspace import ensure_workspace, workspace_paths
 
 router = APIRouter()
@@ -24,6 +31,7 @@ class CommitImportRequest(BaseModel):
     targetSchema: str = Field(min_length=1)
     tableName: str = Field(min_length=1)
     columns: list[ImportColumn]
+    draftId: str | None = None
 
 
 @router.post("/upload")
@@ -38,7 +46,9 @@ async def upload_file(file: UploadFile) -> dict[str, object]:
     target_path.write_bytes(await file.read())
 
     try:
-        return inspect_file(target_path, display_name=original_name)
+        inspection = inspect_file(target_path, display_name=original_name)
+        draft = save_import_draft(inspection)
+        return {**inspection, "draftId": draft["id"], "draft": draft}
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -55,6 +65,27 @@ def commit_file_import(request: CommitImportRequest) -> dict[str, object]:
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/drafts")
+def get_import_drafts() -> dict[str, list[dict[str, object]]]:
+    return {"drafts": list_import_drafts()}
+
+
+@router.get("/drafts/{draft_id}")
+def resume_import_draft(draft_id: str) -> dict[str, object]:
+    try:
+        return get_import_draft(draft_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/drafts/{draft_id}")
+def remove_import_draft(draft_id: str) -> dict[str, object]:
+    try:
+        return delete_import_draft(draft_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 def _validated_upload_path(value: str) -> Path:

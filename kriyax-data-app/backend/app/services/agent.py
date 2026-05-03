@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from app.services.file_import import list_catalog_tables
@@ -58,6 +59,37 @@ def follow_up(prompt: str, prior_code: str | None = None) -> dict[str, Any]:
     raise ValueError("LLM_KEY_MISSING: Configure an API key before running agent follow-up.")
 
 
+def chat(
+    *,
+    messages: list[dict[str, str]],
+    current_code: str | None = None,
+    selected_table: str | None = None,
+    last_run_error: str | None = None,
+) -> dict[str, Any]:
+    if not messages:
+        raise ValueError("At least one chat message is required.")
+
+    prompt = _chat_prompt(
+        messages=messages,
+        current_code=current_code,
+        selected_table=selected_table,
+        last_run_error=last_run_error,
+    )
+    response = complete_text(prompt)
+    if not response:
+        raise ValueError("LLM_KEY_MISSING: Configure an API key before running agent chat.")
+
+    code = _extract_code_block(response)
+    return {
+        "status": "success",
+        "message": response.strip(),
+        "code": code,
+        "hasCode": code is not None,
+        "schemaContext": _schema_context(include_samples=False),
+        "runtime": runtime_status(),
+    }
+
+
 def _schema_context(include_samples: bool = False) -> dict[str, Any]:
     tables = []
     for table in list_catalog_tables():
@@ -69,6 +101,35 @@ def _schema_context(include_samples: bool = False) -> dict[str, Any]:
             }
         )
     return {"includeSamples": include_samples, "tables": tables}
+
+
+def _chat_prompt(
+    *,
+    messages: list[dict[str, str]],
+    current_code: str | None,
+    selected_table: str | None,
+    last_run_error: str | None,
+) -> str:
+    normalized_messages = []
+    for message in messages[-12:]:
+        role = message.get("role", "user")
+        content = (message.get("content") or "").strip()
+        if content:
+            normalized_messages.append(f"{role}: {content}")
+
+    context = _schema_context(include_samples=False)
+    return (
+        "You are the KriyaX data workspace assistant. Answer normal questions directly. "
+        "When code is useful, return a concise explanation and a Python fenced code block. "
+        "Use only these helpers in generated code: load_table(name), save_table(df, name, schema='curated'), "
+        "show(df, name='result'). Do not invent local fallback behavior.\n\n"
+        f"Catalog context:\n{context}\n\n"
+        f"Selected table: {selected_table or 'none'}\n\n"
+        f"Current editor code:\n{current_code or ''}\n\n"
+        f"Last run error:\n{last_run_error or 'none'}\n\n"
+        "Conversation:\n"
+        + "\n".join(normalized_messages)
+    )
 
 
 def _llm_code(prompt: str) -> str | None:
@@ -88,3 +149,11 @@ def _strip_code_fence(value: str) -> str:
             lines = lines[:-1]
         return "\n".join(lines).strip() + "\n"
     return stripped + "\n"
+
+
+def _extract_code_block(value: str) -> str | None:
+    match = re.search(r"```(?:python)?\s*(.*?)```", value, flags=re.S | re.I)
+    if not match:
+        return None
+    code = match.group(1).strip()
+    return code + "\n" if code else None

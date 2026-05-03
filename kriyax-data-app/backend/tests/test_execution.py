@@ -41,14 +41,13 @@ def test_run_script_loads_table_saves_derived_table_and_updates_catalog(monkeypa
 
     assert result["status"] == "success"
     assert "loaded 2 rows" in result["stdout"]
-    assert result["scriptPath"].endswith("make_big_orders.py")
+    assert result["scriptPath"] is None
+    assert result["persistedScript"] is False
     assert result["savedTables"] == ["curated.big_orders"]
     assert result["preview"]["name"] == "curated.big_orders"
     assert result["preview"]["rows"] == [{"customer": "Bravo", "amount": 20.0}]
     assert result["resultTables"][0]["qualifiedName"] == "curated.big_orders"
-    assert (
-        workspace.workspace_paths()["scripts"] / "make_big_orders.py"
-    ).read_text(encoding="utf-8").startswith('df = load_table("raw_files.orders")')
+    assert not (workspace.workspace_paths()["scripts"] / "make_big_orders.py").exists()
 
     with duckdb.connect(str(workspace.workspace_paths()["database"])) as conn:
         rows = conn.execute("select customer, amount from curated.big_orders").fetchall()
@@ -58,6 +57,7 @@ def test_run_script_loads_table_saves_derived_table_and_updates_catalog(monkeypa
     catalog = json.loads(workspace.workspace_paths()["catalog"].read_text(encoding="utf-8"))
     assert catalog[0]["qualifiedName"] == "curated.big_orders"
     assert catalog[0]["source"]["kind"] == "python"
+    assert catalog[0]["source"]["persistedScript"] is False
 
 
 def test_run_script_returns_clear_missing_table_error(monkeypatch, tmp_path):
@@ -97,9 +97,15 @@ def test_saved_scripts_can_be_listed_and_loaded(monkeypatch, tmp_path):
     workspace = _workspace(monkeypatch, tmp_path)
     _seed_table(workspace)
 
-    from app.services.execution import get_script, list_scripts, run_script
+    from app.services.execution import get_script, list_scripts, run_script, save_script
 
     run_script(
+        script_name="make_big_orders.py",
+        code='df = load_table("raw_files.orders")\nprint(len(df))\n',
+    )
+    assert list_scripts() == []
+
+    save_script(
         script_name="make_big_orders.py",
         code='df = load_table("raw_files.orders")\nprint(len(df))\n',
     )

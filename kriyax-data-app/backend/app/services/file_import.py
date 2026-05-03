@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import duckdb
 import pandas as pd
@@ -96,7 +97,89 @@ def commit_import(
         columns=target_columns,
     )
     _upsert_catalog(entry)
+    delete_import_draft_for_file(file_path)
     return entry
+
+
+def list_schemas() -> list[str]:
+    ensure_workspace()
+    schemas = {"raw_files", "raw_odoo", "staging", "curated"}
+    paths = workspace_paths()
+    if paths["database"].exists():
+        with duckdb.connect(str(paths["database"])) as conn:
+            rows = conn.execute("select schema_name from information_schema.schemata").fetchall()
+        schemas.update(row[0] for row in rows)
+    schemas.update(str(table.get("schema")) for table in _read_catalog() if table.get("schema"))
+    return sorted(schema for schema in schemas if schema and schema not in {"information_schema", "pg_catalog"})
+
+
+def create_schema(schema_name: str) -> dict[str, Any]:
+    ensure_workspace()
+    schema = _safe_identifier(schema_name)
+    if not schema:
+        raise ValueError("Schema name is required.")
+    with duckdb.connect(str(workspace_paths()["database"])) as conn:
+        conn.execute(f'create schema if not exists "{schema}"')
+    return {"schema": schema, "schemas": list_schemas()}
+
+
+def save_import_draft(inspection: dict[str, Any]) -> dict[str, Any]:
+    ensure_workspace()
+    now = datetime.now(timezone.utc).isoformat()
+    draft = {
+        "id": uuid4().hex,
+        "createdAt": now,
+        "updatedAt": now,
+        "fileName": inspection["fileName"],
+        "filePath": inspection["filePath"],
+        "rowCount": inspection["rowCount"],
+        "columns": inspection["columns"],
+        "requiresRename": inspection["requiresRename"],
+        "previewRows": inspection["previewRows"],
+    }
+    drafts = [item for item in _read_import_drafts() if item.get("filePath") != draft["filePath"]]
+    drafts.append(draft)
+    _write_import_drafts(drafts)
+    return draft
+
+
+def list_import_drafts() -> list[dict[str, Any]]:
+    ensure_workspace()
+    existing = []
+    changed = False
+    for draft in _read_import_drafts():
+        file_path = Path(str(draft.get("filePath", "")))
+        if file_path.exists():
+            existing.append(draft)
+        else:
+            changed = True
+    if changed:
+        _write_import_drafts(existing)
+    return sorted(existing, key=lambda item: item.get("updatedAt") or item.get("createdAt") or "", reverse=True)
+
+
+def get_import_draft(draft_id: str) -> dict[str, Any]:
+    for draft in list_import_drafts():
+        if draft.get("id") == draft_id:
+            return draft
+    raise ValueError("Import draft not found.")
+
+
+def delete_import_draft(draft_id: str) -> dict[str, Any]:
+    drafts = _read_import_drafts()
+    remaining = [draft for draft in drafts if draft.get("id") != draft_id]
+    if len(remaining) == len(drafts):
+        raise ValueError("Import draft not found.")
+    _write_import_drafts(remaining)
+    return {"deleted": True, "id": draft_id}
+
+
+def delete_import_draft_for_file(file_path: Path) -> None:
+    resolved = str(file_path.resolve())
+    drafts = _read_import_drafts()
+    remaining = [draft for draft in drafts if str(Path(str(draft.get("filePath", ""))).resolve()) != resolved]
+    if len(remaining) != len(drafts):
+        _write_import_drafts(remaining)
 
 
 def list_catalog_tables() -> list[dict[str, Any]]:
@@ -320,6 +403,14 @@ def _read_catalog() -> list[dict[str, Any]]:
 
 def _write_catalog(catalog: list[dict[str, Any]]) -> None:
     workspace_paths()["catalog"].write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+
+
+def _read_import_drafts() -> list[dict[str, Any]]:
+    return json.loads(workspace_paths()["import_drafts"].read_text(encoding="utf-8"))
+
+
+def _write_import_drafts(drafts: list[dict[str, Any]]) -> None:
+    workspace_paths()["import_drafts"].write_text(json.dumps(drafts, indent=2) + "\n", encoding="utf-8")
 
 
 def _guard_table(schema: str, table_name: str) -> None:

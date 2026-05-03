@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.services.execution import get_script, list_scripts, run_script
+from app.services.execution import get_script, list_scripts, run_script, save_script
 
 router = APIRouter()
 
@@ -9,16 +9,27 @@ router = APIRouter()
 class RunScriptRequest(BaseModel):
     scriptName: str = Field(min_length=1)
     code: str = Field(min_length=1)
+    persistScript: bool = False
+
+
+class SaveScriptRequest(BaseModel):
+    scriptName: str = Field(min_length=1)
+    code: str = Field(min_length=1)
 
 
 @router.post("/run")
 def run_python_script(request: RunScriptRequest) -> dict[str, object]:
-    return run_script(script_name=request.scriptName, code=request.code)
+    return run_script(script_name=request.scriptName, code=request.code, persist_script=request.persistScript)
 
 
 @router.get("/scripts")
 def get_saved_scripts() -> dict[str, list[dict[str, object]]]:
     return {"scripts": list_scripts()}
+
+
+@router.post("/scripts")
+def save_python_script(request: SaveScriptRequest) -> dict[str, object]:
+    return save_script(request.scriptName, request.code)
 
 
 @router.get("/scripts/{script_name}")

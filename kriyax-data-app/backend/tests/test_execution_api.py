@@ -36,6 +36,8 @@ def test_run_script_api_returns_output_and_saved_table(monkeypatch, tmp_path):
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "success"
+    assert payload["persistedScript"] is False
+    assert payload["scriptPath"] is None
     assert "rows=2" in payload["stdout"]
     assert payload["savedTables"] == ["curated.big_orders"]
     assert payload["preview"]["rows"] == [{"customer": "Bravo", "amount": 20.0}]
@@ -74,7 +76,7 @@ def test_run_script_api_returns_show_preview(monkeypatch, tmp_path):
     assert payload["preview"]["rows"] == [{"customer": "Bravo", "amount": 20.0}]
 
 
-def test_saved_script_api_lists_and_loads_saved_scripts(monkeypatch, tmp_path):
+def test_run_does_not_save_and_saved_script_api_lists_and_loads_explicit_saves(monkeypatch, tmp_path):
     monkeypatch.setenv("KRIYAX_WORKSPACE_ROOT", str(tmp_path))
     client = TestClient(app)
 
@@ -85,6 +87,18 @@ def test_saved_script_api_lists_and_loads_saved_scripts(monkeypatch, tmp_path):
             "code": 'print("hello saved script")\n',
         },
     )
+
+    assert client.get("/api/execution/scripts").json()["scripts"] == []
+
+    save_response = client.post(
+        "/api/execution/scripts",
+        json={
+            "scriptName": "hello_script.py",
+            "code": 'print("hello saved script")\n',
+        },
+    )
+    assert save_response.status_code == 200
+    assert save_response.json()["name"] == "hello_script.py"
 
     list_response = client.get("/api/execution/scripts")
     assert list_response.status_code == 200

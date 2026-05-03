@@ -15,7 +15,7 @@ from app.services.file_import import list_catalog_tables
 from app.services.workspace import ensure_workspace, workspace_paths
 
 
-def run_script(*, script_name: str, code: str) -> dict[str, Any]:
+def run_script(*, script_name: str, code: str, persist_script: bool = False) -> dict[str, Any]:
     ensure_workspace()
     paths = workspace_paths()
     script_path = _script_path(script_name)
@@ -23,7 +23,9 @@ def run_script(*, script_name: str, code: str) -> dict[str, Any]:
 
     helper_path = paths["scripts"] / "_kriyax_runtime.py"
     helper_path.write_text(_runtime_helper_source(result_path), encoding="utf-8")
-    script_path.write_text(code, encoding="utf-8")
+    compile_path = script_path if persist_script else paths["runs"] / f"{script_path.stem}-transient.py"
+    if persist_script:
+        script_path.write_text(code, encoding="utf-8")
 
     saved_tables: list[str] = []
     result_tables: list[dict[str, Any]] = []
@@ -68,14 +70,14 @@ def run_script(*, script_name: str, code: str) -> dict[str, Any]:
     return_code = 0
     with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
         try:
-            exec(compile(code, str(script_path), "exec"), namespace)
+            exec(compile(code, str(compile_path), "exec"), namespace)
         except Exception:
             return_code = 1
             traceback.print_exc()
 
     for qualified_name in saved_tables:
         schema, table = qualified_name.split(".", 1)
-        _register_python_table(schema=schema, table=table, script_path=script_path)
+        _register_python_table(schema=schema, table=table, script_path=script_path, persisted=persist_script)
 
     status = "success" if return_code == 0 else "error"
     stderr = stderr_buffer.getvalue()
@@ -87,7 +89,8 @@ def run_script(*, script_name: str, code: str) -> dict[str, Any]:
     return {
         "status": status,
         "scriptName": script_path.name,
-        "scriptPath": str(script_path),
+        "scriptPath": str(script_path) if persist_script else None,
+        "persistedScript": persist_script,
         "stdout": stdout_buffer.getvalue(),
         "stderr": stderr,
         "returnCode": return_code,
@@ -95,6 +98,20 @@ def run_script(*, script_name: str, code: str) -> dict[str, Any]:
         "resultTables": result_tables,
         "displayFrames": display_frames,
         "preview": preview,
+    }
+
+
+def save_script(script_name: str, code: str) -> dict[str, Any]:
+    ensure_workspace()
+    path = _script_path(script_name)
+    path.write_text(code, encoding="utf-8")
+    stat = path.stat()
+    return {
+        "name": path.name,
+        "path": str(path),
+        "size": stat.st_size,
+        "updatedAt": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        "code": code,
     }
 
 
@@ -185,7 +202,7 @@ def _records(df: pd.DataFrame) -> list[dict[str, Any]]:
     return json.loads(df.where(pd.notnull(df), None).to_json(orient="records", date_format="iso"))
 
 
-def _register_python_table(*, schema: str, table: str, script_path: Path) -> None:
+def _register_python_table(*, schema: str, table: str, script_path: Path, persisted: bool) -> None:
     paths = workspace_paths()
     with duckdb.connect(str(paths["database"])) as conn:
         row_count = conn.execute(f'select count(*) from "{schema}"."{table}"').fetchone()[0]
@@ -195,7 +212,12 @@ def _register_python_table(*, schema: str, table: str, script_path: Path) -> Non
         "qualifiedName": f"{schema}.{table}",
         "schema": schema,
         "tableName": table,
-        "source": {"kind": "python", "scriptName": script_path.name, "scriptPath": str(script_path)},
+        "source": {
+            "kind": "python",
+            "scriptName": script_path.name,
+            "scriptPath": str(script_path) if persisted else None,
+            "persistedScript": persisted,
+        },
         "rowCount": int(row_count),
         "columnCount": len(columns),
         "createdAt": datetime.now(timezone.utc).isoformat(),

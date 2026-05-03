@@ -17,6 +17,20 @@ export type ImportColumn = {
 };
 
 export type ImportInspection = {
+  draftId?: string;
+  draft?: ImportDraft;
+  fileName: string;
+  filePath: string;
+  rowCount: number;
+  columns: ImportColumn[];
+  requiresRename: boolean;
+  previewRows: Record<string, string | number | boolean | null>[];
+};
+
+export type ImportDraft = {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
   fileName: string;
   filePath: string;
   rowCount: number;
@@ -54,7 +68,8 @@ export type TablePreview = {
 export type RunScriptResult = {
   status: "success" | "error";
   scriptName: string;
-  scriptPath: string;
+  scriptPath: string | null;
+  persistedScript: boolean;
   stdout: string;
   stderr: string;
   returnCode: number;
@@ -196,6 +211,20 @@ export type AgentResult = {
   tracebackSummary?: string;
 };
 
+export type AgentChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+export type AgentChatResult = {
+  status: "success";
+  message: string;
+  code: string | null;
+  hasCode: boolean;
+  schemaContext?: unknown;
+  runtime?: unknown;
+};
+
 export type LlmProvider = "openai" | "kimi" | "anthropic" | "azure-openai";
 
 export type LlmProfile = {
@@ -248,7 +277,7 @@ export type LlmRuntimeStatus = {
   label: string;
   model: string;
   hasApiKey: boolean;
-  status: "ready" | "missing_key" | "fallback";
+  status: "ready" | "missing_key";
   message: string;
 };
 
@@ -375,6 +404,21 @@ export async function followUpAgentCode(prompt: string, priorCode: string): Prom
   return response.json();
 }
 
+export async function chatWithAgent(params: {
+  messages: AgentChatMessage[];
+  currentCode?: string;
+  selectedTable?: string | null;
+  lastRunError?: string | null;
+}): Promise<AgentChatResult> {
+  const response = await fetch("/api/agent/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params)
+  });
+  if (!response.ok) throw new Error(await errorMessage(response, "Agent chat failed"));
+  return response.json();
+}
+
 export async function uploadImportFile(file: File): Promise<ImportInspection> {
   const body = new FormData();
   body.append("file", file);
@@ -388,11 +432,30 @@ export async function uploadImportFile(file: File): Promise<ImportInspection> {
   return response.json();
 }
 
+export async function fetchImportDrafts(): Promise<ImportDraft[]> {
+  const response = await fetch("/api/imports/drafts");
+  if (!response.ok) throw new Error(await errorMessage(response, "Import drafts load failed"));
+  return (await response.json()).drafts;
+}
+
+export async function fetchImportDraft(draftId: string): Promise<ImportDraft> {
+  const response = await fetch(`/api/imports/drafts/${encodeURIComponent(draftId)}`);
+  if (!response.ok) throw new Error(await errorMessage(response, "Import draft load failed"));
+  return response.json();
+}
+
+export async function deleteImportDraft(draftId: string): Promise<{ deleted: boolean; id: string }> {
+  const response = await fetch(`/api/imports/drafts/${encodeURIComponent(draftId)}`, { method: "DELETE" });
+  if (!response.ok) throw new Error(await errorMessage(response, "Import draft delete failed"));
+  return response.json();
+}
+
 export async function commitImport(params: {
   filePath: string;
   targetSchema: string;
   tableName: string;
   columns: ImportColumn[];
+  draftId?: string;
 }): Promise<CatalogTable> {
   const response = await fetch("/api/imports/commit", {
     method: "POST",
@@ -412,6 +475,22 @@ export async function fetchCatalogTables(): Promise<CatalogTable[]> {
   }
   const payload = await response.json();
   return payload.tables;
+}
+
+export async function fetchCatalogSchemas(): Promise<string[]> {
+  const response = await fetch("/api/catalog/schemas");
+  if (!response.ok) throw new Error(await errorMessage(response, "Schema load failed"));
+  return (await response.json()).schemas;
+}
+
+export async function createCatalogSchema(schemaName: string): Promise<{ schema: string; schemas: string[] }> {
+  const response = await fetch("/api/catalog/schemas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ schemaName })
+  });
+  if (!response.ok) throw new Error(await errorMessage(response, "Schema create failed"));
+  return response.json();
 }
 
 export async function fetchTablePreview(schema: string, tableName: string): Promise<TablePreview> {
@@ -463,6 +542,7 @@ export async function exportCatalogTable(schema: string, tableName: string): Pro
 export async function runPythonScript(params: {
   scriptName: string;
   code: string;
+  persistScript?: boolean;
 }): Promise<RunScriptResult> {
   const response = await fetch("/api/execution/run", {
     method: "POST",
@@ -472,6 +552,19 @@ export async function runPythonScript(params: {
   if (!response.ok) {
     throw new Error(await errorMessage(response, "Script run failed"));
   }
+  return response.json();
+}
+
+export async function savePythonScript(params: {
+  scriptName: string;
+  code: string;
+}): Promise<SavedScriptDetail> {
+  const response = await fetch("/api/execution/scripts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params)
+  });
+  if (!response.ok) throw new Error(await errorMessage(response, "Script save failed"));
   return response.json();
 }
 

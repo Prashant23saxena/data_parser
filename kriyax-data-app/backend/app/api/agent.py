@@ -22,6 +22,18 @@ class FollowUpRequest(BaseModel):
     priorCode: str | None = None
 
 
+class ChatMessage(BaseModel):
+    role: str = Field(pattern="^(system|user|assistant)$")
+    content: str = Field(min_length=1)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1)
+    currentCode: str | None = None
+    selectedTable: str | None = None
+    lastRunError: str | None = None
+
+
 @router.post("/generate")
 def generate_code(request: GenerateRequest) -> dict[str, object]:
     try:
@@ -42,5 +54,18 @@ def correct_code(request: CorrectRequest) -> dict[str, object]:
 def follow_up(request: FollowUpRequest) -> dict[str, object]:
     try:
         return agent.follow_up(request.prompt, prior_code=request.priorCode)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/chat")
+def chat(request: ChatRequest) -> dict[str, object]:
+    try:
+        return agent.chat(
+            messages=[message.model_dump() for message in request.messages],
+            current_code=request.currentCode,
+            selected_table=request.selectedTable,
+            last_run_error=request.lastRunError,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

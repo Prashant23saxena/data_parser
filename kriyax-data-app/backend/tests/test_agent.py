@@ -56,3 +56,40 @@ def test_agent_correct_limits_attempts(monkeypatch, tmp_path):
         assert str(exc) == "Maximum correction attempts reached."
     else:
         raise AssertionError("Expected correction attempt guard")
+
+
+def test_agent_chat_returns_message_and_code_block(monkeypatch, tmp_path):
+    workspace = _workspace(monkeypatch, tmp_path)
+    workspace.workspace_paths()["catalog"].write_text(
+        json.dumps(
+            [
+                {
+                    "qualifiedName": "raw.orders",
+                    "rowCount": 2,
+                    "columns": [{"name": "amount", "type": "decimal"}],
+                }
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    from app.services import agent
+
+    monkeypatch.setattr(
+        agent,
+        "complete_text",
+        lambda prompt: "Use this:\n```python\ndf = load_table('raw.orders')\nshow(df)\n```",
+    )
+    monkeypatch.setattr(agent, "runtime_status", lambda: {"provider": "kimi"})
+
+    response = agent.chat(
+        messages=[{"role": "user", "content": "show orders"}],
+        current_code="",
+        selected_table="raw.orders",
+    )
+
+    assert response["status"] == "success"
+    assert response["hasCode"] is True
+    assert response["code"] == "df = load_table('raw.orders')\nshow(df)\n"
+    assert response["schemaContext"]["tables"][0]["qualifiedName"] == "raw.orders"
